@@ -105,9 +105,9 @@ Test-Case 'No winget: every app is reported, nothing else is skipped' {
 Test-Case '-SkipApplications, -SkipPrinters and -SkipSecurity' {
     $run = Invoke-TestProvisioning -Extra @{ SkipApplications = $true; SkipPrinters = $true }
     Assert-Equal 0 @($run.Applications).Count 'no apps'
-    Assert-Equal 0 @@(Get-FakeCall -Name 'winget').Count 'winget not called'
+    Assert-Equal 0 @(Get-FakeCall -Name 'winget').Count 'winget not called'
     Assert-Equal 0 @($run.Printers).Count 'no printers'
-    Assert-Equal 0 @@(Get-FakeCall -Name 'Get-Printer').Count 'printers not touched'
+    Assert-Equal 0 @(Get-FakeCall -Name 'Get-Printer').Count 'printers not touched'
     $run = Invoke-TestProvisioning -Extra @{ SkipSecurity = $true }
     Assert-Equal 0 @($run.Security).Count 'no baseline'
     Assert-Equal 7 @($run.Applications).Count 'apps still installed'
