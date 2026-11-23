@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Tests (${{ matrix.shell }})
+    runs-on: windows-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shell: [powershell, pwsh]
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Run test suite
+        run: ./tests/Run-Tests.ps1
+      # Read-only on purpose: -WhatIf checks the runner's real winget, BitLocker, SMB, firewall and
+      # Appx state and writes a simulation handover form, without changing anything.
+      - name: Simulate a real provisioning on the runner (-WhatIf)
+        run: ./Invoke-ZeroTouch.ps1 -Department comercial -WhatIf -OutputPath ./out
+      - name: Keep the simulation handover form
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simulation-${{ matrix.shell }}
+          path: out/
+          if-no-files-found: ignore
+
+  analyze:
+    name: PSScriptAnalyzer (security rules)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install PSScriptAnalyzer
+        run: |
+          Set-PSRepository PSGallery -InstallationPolicy Trusted
+          Install-Module PSScriptAnalyzer -RequiredVersion 1.23.0 -Scope CurrentUser -Force
+      - name: Analyze
+        run: |
+          $security = 'PSAvoidUsingInvokeExpression', 'PSAvoidUsingPlainTextForPassword', 'PSAvoidUsingConvertToSecureStringWithPlainText',
+            'PSUsePSCredentialType', 'PSAvoidUsingUsernameAndPasswordParams', 'PSAvoidUsingComputerNameHardcoded',
+            'PSAvoidUsingAllowUnencryptedAuthentication', 'PSAvoidUsingBrokenHashAlgorithms', 'PSAvoidGlobalVars',
+            'PSAvoidUsingWMICmdlet'
+          # Shipped code: security rules plus anything rated Error. Tests: anything rated Error.
+          $shipped = Get-ChildItem -Recurse -Include *.ps1 | Where-Object FullName -notmatch '[\\/]tests[\\/]'
+          $issues = @($shipped | ForEach-Object { Invoke-ScriptAnalyzer -Path $_.FullName -IncludeRule $security }) +
+                    @($shipped | ForEach-Object { Invoke-ScriptAnalyzer -Path $_.FullName -Severity Error }) +
+                    @(Get-ChildItem tests -Filter *.ps1 | ForEach-Object { Invoke-ScriptAnalyzer -Path $_.FullName -Severity Error })
+          $issues | Format-Table RuleName, Severity, ScriptName, Line, Message -AutoSize -Wrap
+          if ($issues.Count) { Write-Error "$($issues.Count) analyzer finding(s)"; exit 1 }
+          'No findings.'

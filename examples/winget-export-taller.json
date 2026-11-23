@@ -1,0 +1,39 @@
+{
+  "$schema": "https://aka.ms/winget-packages.schema.2.0.json",
+  "CreationDate": "2026-11-20T09:12:44.123-00:00",
+  "Sources": [
+    {
+      "Packages": [
+        { "PackageIdentifier": "7zip.7zip", "Version": "24.08" },
+        { "PackageIdentifier": "Google.Chrome", "Version": "131.0.6778.86" },
+        { "PackageIdentifier": "Notepad++.Notepad++", "Version": "8.7.1" },
+        { "PackageIdentifier": "WinSCP.WinSCP", "Version": "6.3.5" },
+        { "PackageIdentifier": "SumatraPDF.SumatraPDF", "Version": "3.5.2" },
+        { "PackageIdentifier": "TheDocumentFoundation.LibreOffice", "Version": "24.8.3.2" },
+        { "PackageIdentifier": "Microsoft.VCRedist.2015+.x64", "Version": "14.40.33816.0" },
+        { "PackageIdentifier": "Microsoft.Edge", "Version": "131.0.2903.70" },
+        { "PackageIdentifier": "Microsoft.EdgeWebView2Runtime", "Version": "131.0.2903.70" },
+        { "PackageIdentifier": "Lenovo.SystemUpdate", "Version": "5.08.03.59" },
+        { "PackageIdentifier": "Intel.IntelDriverAndSupportAssistant", "Version": "24.6.49.8" }
+      ],
+      "SourceDetails": {
+        "Argument": "https://cdn.winget.microsoft.com/cache",
+        "Identifier": "Microsoft.Winget.Source_8wekyb3d8bbwe",
+        "Name": "winget",
+        "Type": "Microsoft.PreIndexed.Package"
+      }
+    },
+    {
+      "Packages": [
+        { "PackageIdentifier": "9WZDNCRFJ3PZ" }
+      ],
+      "SourceDetails": {
+        "Argument": "https://storeedgefd.dsx.mp.microsoft.com/v9.0",
+        "Identifier": "StoreEdgeFD",
+        "Name": "msstore",
+        "Type": "Microsoft.Rest"
+      }
+    }
+  ],
+  "WinGetVersion": "1.9.25200"
+}

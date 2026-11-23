@@ -1,0 +1,59 @@
+{
+  "$schema": "./schema/profile.schema.json",
+  "name": "base",
+  "displayName": "Base corporativa",
+  "description": "Común a todos los puestos. No se aplica sola: los departamentos la heredan con \"extends\".",
+  "abstract": true,
+  "organization": {
+    "name": "Demo Corp S.L.",
+    "itContact": "Soporte TI (ext. 200)",
+    "language": "es"
+  },
+  "applications": [
+    { "id": "7zip.7zip", "name": "7-Zip" },
+    { "id": "Google.Chrome", "name": "Google Chrome", "scope": "machine" },
+    { "id": "Adobe.Acrobat.Reader.64-bit", "name": "Adobe Acrobat Reader" }
+  ],
+  "security": {
+    "bitlocker": {
+      "action": "Report",
+      "encryptionMethod": "XtsAes256",
+      "usedSpaceOnly": true,
+      "requireKeyEscrow": true
+    },
+    "disableSmb1": true,
+    "firewall": {
+      "enableAllProfiles": true,
+      "defaultInboundAction": "Block",
+      "defaultOutboundAction": "Allow",
+      "logBlocked": true,
+      "rules": [
+        { "displayName": "ZT - Block inbound SMB on public networks", "direction": "Inbound", "action": "Block", "protocol": "TCP", "localPort": "445", "profile": "Public" },
+        { "displayName": "ZT - Block inbound RDP on public networks", "direction": "Inbound", "action": "Block", "protocol": "TCP", "localPort": "3389", "profile": "Public" }
+      ]
+    },
+    "removeBloatware": [
+      "Microsoft.BingNews",
+      "Microsoft.BingWeather",
+      "Microsoft.GamingApp",
+      "Microsoft.XboxApp",
+      "Microsoft.XboxGameOverlay",
+      "Microsoft.XboxGamingOverlay",
+      "Microsoft.XboxSpeechToTextOverlay",
+      "Microsoft.Xbox.TCUI",
+      "Microsoft.MicrosoftSolitaireCollection",
+      "Microsoft.ZuneVideo",
+      "Microsoft.People",
+      "Microsoft.GetHelp",
+      "Microsoft.Getstarted",
+      "Microsoft.WindowsFeedbackHub",
+      "Microsoft.MixedReality.Portal",
+      "Microsoft.549981C3F5F10",
+      "MicrosoftTeams",
+      "Clipchamp.Clipchamp",
+      "SpotifyAB.SpotifyMusic",
+      "king.com.*",
+      "Disney.*"
+    ]
+  }
+}

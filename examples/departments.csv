@@ -1,0 +1,11 @@
+Departamento;Id;Nombre;Obligatoria
+Oficina;Microsoft.Office;Microsoft 365 Apps;Sí
+Oficina;Microsoft.Teams;Microsoft Teams;Sí
+Oficina;geeksoftwareGmbH.PDF24Creator;PDF24 Creator;No
+Taller;SumatraPDF.SumatraPDF;SumatraPDF;Sí
+Taller;Notepad++.Notepad++;Notepad++;Sí
+Taller;WinSCP.WinSCP;WinSCP;Sí
+Dirección;Microsoft.Office;Microsoft 365 Apps;Sí
+Dirección;Zoom.Zoom;Zoom;No
+Recepción;Microsoft.Teams;Microsoft Teams;Sí
+Recepción;7zip.7zip;7-Zip;Sí

@@ -1,0 +1,7 @@
+# Real output: handover forms and logs contain names, serial numbers and network data.
+out/
+Reports/
+Logs/
+*.intunewin
+testResults.xml
+.vscode/

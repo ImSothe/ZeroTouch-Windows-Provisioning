@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="{{LANG}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
+<title>{{t:title}} - {{COMPUTER_NAME}}</title>
+<style>
+  :root { --ink: #1f2933; --muted: #616e7c; --line: #d9e2ec; --brand: #0b5cad; --panel: #f5f7fa;
+          --ok: #17663a; --ok-bg: #e3f5ea; --warn: #8a5300; --warn-bg: #fff1d1; --fail: #b42318; --fail-bg: #fde8e7;
+          --sim: #5b3cc4; --sim-bg: #ece7fb; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #e9eef4; color: var(--ink); font: 13px/1.5 "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif; }
+  .sheet { max-width: 210mm; margin: 24px auto; background: #fff; padding: 16mm 15mm; box-shadow: 0 2px 14px rgba(16, 42, 67, .14); }
+  header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; border-bottom: 3px solid var(--brand); padding-bottom: 10px; }
+  .org { font-weight: 700; font-size: 15px; color: var(--brand); }
+  h1 { font-size: 20px; margin: 2px 0 2px; }
+  .sub { color: var(--muted); }
+  .meta { text-align: right; font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .meta strong { color: var(--ink); }
+  .banner { margin: 0 0 14px; padding: 8px 12px; border-radius: 6px; background: var(--sim-bg); color: var(--sim); font-weight: 600; }
+  .status { margin: 16px 0 6px; padding: 10px 14px; border-radius: 8px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; }
+  .status strong { font-size: 14px; letter-spacing: .04em; }
+  .status.ok { background: var(--ok-bg); color: var(--ok); }
+  .status.warn { background: var(--warn-bg); color: var(--warn); }
+  .status.fail { background: var(--fail-bg); color: var(--fail); }
+  .status.sim { background: var(--sim-bg); color: var(--sim); }
+  .status span { color: var(--ink); }
+  .notice { margin: 6px 0 0; padding: 6px 12px; border-left: 4px solid var(--warn); background: var(--warn-bg); color: var(--warn); font-weight: 600; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .07em; color: var(--brand); border-bottom: 1px solid var(--line); padding-bottom: 4px; margin: 22px 0 10px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 28px; }
+  dl { margin: 0; display: grid; grid-template-columns: 140px 1fr; row-gap: 4px; }
+  dt { color: var(--muted); }
+  dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+  dd.fill:empty { border-bottom: 1px dotted var(--muted); min-height: 19px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--panel); color: var(--muted); font-weight: 600; }
+  .mono { font-family: Consolas, "Cascadia Mono", monospace; font-size: 11px; overflow-wrap: anywhere; }
+  .detail { color: var(--muted); }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .pill.ok { background: var(--ok-bg); color: var(--ok); }
+  .pill.warn { background: var(--warn-bg); color: var(--warn); }
+  .pill.fail { background: var(--fail-bg); color: var(--fail); }
+  .pill.sim { background: var(--sim-bg); color: var(--sim); }
+  .tag { font-size: 10px; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; margin-left: 4px; font-weight: 400; }
+  ul.notes { margin: 0; padding-left: 18px; }
+  ul.notes li { margin: 2px 0; }
+  .terms { color: var(--muted); font-size: 11.5px; }
+  .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 12px; }
+  .sign { border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; min-height: 130px; display: flex; flex-direction: column; gap: 2px; }
+  .sign .who { min-height: 19px; }
+  .sign .line { margin-top: auto; border-top: 1px solid var(--ink); padding-top: 4px; font-size: 11px; color: var(--muted); }
+  footer { margin-top: 18px; display: flex; justify-content: space-between; gap: 12px; font-size: 10px; color: var(--muted); }
+  @media (max-width: 680px) {
+    .sheet { margin: 0; padding: 20px 16px; box-shadow: none; }
+    header { flex-direction: column; }
+    .meta { text-align: left; }
+    .grid, .signatures { grid-template-columns: 1fr; }
+    dl { grid-template-columns: 120px 1fr; }
+    .table-wrap { overflow-x: auto; }
+  }
+  @media print {
+    @page { size: A4; margin: 12mm; }
+    body { background: #fff; }
+    .sheet { margin: 0; padding: 0; max-width: none; box-shadow: none; }
+    tr, .sign, .status { break-inside: avoid; }
+    h2 { break-after: avoid; }
+  }
+</style>
+</head>
+<body>
+<main class="sheet">
+{{SIMULATION_BANNER}}
+<header>
+  <div>
+    <div class="org">{{ORGANIZATION}}</div>
+    <h1>{{t:title}}</h1>
+    <div class="sub">{{t:department}}: <strong>{{DEPARTMENT}}</strong>{{DEPARTMENT_DESCRIPTION}}</div>
+  </div>
+  <div class="meta">
+    <div>{{t:formNumber}} <strong>{{FORM_ID}}</strong></div>
+    <div>{{t:date}} <strong>{{DATE}}</strong></div>
+  </div>
+</header>
+
+<div class="status {{OUTCOME_CLASS}}"><strong>{{OUTCOME_LABEL}}</strong><span>{{SUMMARY}}</span></div>
+{{REBOOT_NOTICE}}
+
+<h2>{{t:section.assignment}}</h2>
+<dl>
+  <dt>{{t:receivedBy}}</dt><dd class="fill">{{ASSIGNED_USER}}</dd>
+  <dt>{{t:deliveredBy}}</dt><dd class="fill">{{TECHNICIAN}}</dd>
+  <dt>{{t:profileApplied}}</dt><dd>{{PROFILE}}</dd>
+</dl>
+
+<h2>{{t:section.device}}</h2>
+<div class="grid">
+  <dl>
+    <dt>{{t:device.name}}</dt><dd>{{COMPUTER_NAME}}</dd>
+    <dt>{{t:device.manufacturer}}</dt><dd>{{MANUFACTURER}}</dd>
+    <dt>{{t:device.model}}</dt><dd>{{MODEL}}</dd>
+    <dt>{{t:device.serial}}</dt><dd class="mono">{{SERIAL}}</dd>
+    <dt>{{t:device.type}}</dt><dd>{{CHASSIS}}</dd>
+    <dt>{{t:device.bios}}</dt><dd>{{BIOS}}</dd>
+  </dl>
+  <dl>
+    <dt>{{t:device.cpu}}</dt><dd>{{CPU}}</dd>
+    <dt>{{t:device.memory}}</dt><dd>{{MEMORY}}</dd>
+    <dt>{{t:device.disk}}</dt><dd>{{DISK}}</dd>
+    <dt>{{t:device.os}}</dt><dd>{{OS}}</dd>
+    <dt>{{t:device.join}}</dt><dd>{{JOIN}}</dd>
+    <dt>{{t:device.network}}</dt><dd class="mono">{{NETWORK}}</dd>
+  </dl>
+</div>
+
+<h2>{{t:section.security}}</h2>
+<dl>
+  <dt>{{t:device.tpm}}</dt><dd>{{TPM}}</dd>
+  <dt>{{t:device.secureBoot}}</dt><dd>{{SECURE_BOOT}}</dd>
+  <dt>{{t:device.antivirus}}</dt><dd>{{ANTIVIRUS}}</dd>
+</dl>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>{{t:col.control}}</th><th>{{t:col.status}}</th><th>{{t:col.detail}}</th></tr></thead>
+  <tbody>
+{{SECURITY_ROWS}}
+  </tbody>
+</table>
+</div>
+
+<h2>{{t:section.software}}</h2>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>{{t:col.application}}</th><th>{{t:col.id}}</th><th>{{t:col.version}}</th><th>{{t:col.status}}</th><th>{{t:col.detail}}</th></tr></thead>
+  <tbody>
+{{APPLICATION_ROWS}}
+  </tbody>
+</table>
+</div>
+
+<h2>{{t:section.printers}}</h2>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>{{t:col.printer}}</th><th>{{t:col.address}}</th><th>{{t:col.driver}}</th><th>{{t:col.status}}</th><th>{{t:col.detail}}</th></tr></thead>
+  <tbody>
+{{PRINTER_ROWS}}
+  </tbody>
+</table>
+</div>
+
+<h2>{{t:section.notes}}</h2>
+{{NOTES}}
+
+<h2>{{t:section.acceptance}}</h2>
+<p class="terms">{{TERMS}}</p>
+<div class="signatures">
+  <div class="sign"><strong>{{t:sign.delivered}}</strong><span class="who">{{TECHNICIAN}}</span><div class="line">{{t:sign.line}}</div></div>
+  <div class="sign"><strong>{{t:sign.received}}</strong><span class="who">{{ASSIGNED_USER}}</span><div class="line">{{t:sign.line}}</div></div>
+</div>
+
+<footer><span>{{GENERATED_BY}}</span><span>{{FORM_ID}}</span></footer>
+</main>
+</body>
+</html>

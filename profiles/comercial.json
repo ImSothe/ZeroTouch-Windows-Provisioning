@@ -1,0 +1,18 @@
+{
+  "$schema": "./schema/profile.schema.json",
+  "name": "comercial",
+  "displayName": "Comercial (portátil)",
+  "description": "Portátiles que salen de la oficina: lo mismo que Oficina, con el disco cifrado obligatoriamente.",
+  "extends": "oficina",
+  "applications": [
+    { "id": "Zoom.Zoom", "name": "Zoom", "required": false }
+  ],
+  "security": {
+    "bitlocker": { "action": "Enable" },
+    "firewall": {
+      "rules": [
+        { "displayName": "ZT - Block inbound SMB on private networks", "direction": "Inbound", "action": "Block", "protocol": "TCP", "localPort": "445", "profile": "Private" }
+      ]
+    }
+  }
+}

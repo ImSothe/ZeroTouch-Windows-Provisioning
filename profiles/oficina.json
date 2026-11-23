@@ -1,0 +1,16 @@
+{
+  "$schema": "./schema/profile.schema.json",
+  "name": "oficina",
+  "displayName": "Oficina",
+  "description": "Puesto administrativo: ofimática, videollamadas y PDF.",
+  "extends": "base",
+  "applications": [
+    { "id": "Microsoft.Office", "name": "Microsoft 365 Apps" },
+    { "id": "Microsoft.Teams", "name": "Microsoft Teams" },
+    { "id": "geeksoftwareGmbH.PDF24Creator", "name": "PDF24 Creator", "required": false },
+    { "id": "Greenshot.Greenshot", "name": "Greenshot", "required": false }
+  ],
+  "printers": [
+    { "name": "Oficina - Multifunción planta 1", "address": "192.168.10.30", "driver": "HP Universal Printing PCL 6", "location": "Planta 1, junto a recepción" }
+  ]
+}

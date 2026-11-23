@@ -1,0 +1,25 @@
+{
+  "$schema": "./schema/profile.schema.json",
+  "name": "taller",
+  "displayName": "Taller",
+  "description": "Puesto de planta: planos, programas CNC y transferencia de ficheros a las máquinas.",
+  "extends": "base",
+  "removeApplications": [ "Adobe.Acrobat.Reader.64-bit" ],
+  "applications": [
+    { "id": "SumatraPDF.SumatraPDF", "name": "SumatraPDF" },
+    { "id": "Notepad++.Notepad++", "name": "Notepad++" },
+    { "id": "WinSCP.WinSCP", "name": "WinSCP" },
+    { "id": "TheDocumentFoundation.LibreOffice", "name": "LibreOffice" },
+    { "id": "LibreCAD.LibreCAD", "name": "LibreCAD", "required": false }
+  ],
+  "printers": [
+    { "name": "Taller - Impresora de planta", "address": "192.168.50.20", "driver": "HP Universal Printing PCL 6", "driverInf": "\\\\srv-files\\drivers\\hp-upd-pcl6\\hpcu270u.inf", "location": "Nave 2" }
+  ],
+  "security": {
+    "firewall": {
+      "rules": [
+        { "displayName": "ZT - Allow DNC from the machine network", "direction": "Inbound", "action": "Allow", "protocol": "TCP", "localPort": "5001", "remoteAddress": "192.168.50.0/24", "profile": "Domain,Private" }
+      ]
+    }
+  }
+}

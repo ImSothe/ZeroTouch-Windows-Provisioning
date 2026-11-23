@@ -1,0 +1,322 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/ImSothe/ZeroTouch-Windows-Provisioning/profiles/schema/profile.schema.json",
+  "title": "ZeroTouch department profile",
+  "description": "Applications and security baseline for one department. Gives autocompletion and validation in VS Code; ZeroTouch validates profiles again when it loads them.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "name": {
+      "description": "Profile name. Same as the file name: letters, digits, '-' or '_'.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$"
+    },
+    "displayName": {
+      "description": "Name shown in the menu and on the handover form.",
+      "type": "string"
+    },
+    "description": {
+      "description": "What the department's computers are for.",
+      "type": "string"
+    },
+    "extends": {
+      "description": "Parent profile (file name without .json) whose applications and settings are inherited.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$"
+    },
+    "abstract": {
+      "description": "true for profiles that are only inherited (hidden from the menu).",
+      "type": "boolean"
+    },
+    "organization": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Company name printed on the handover form.",
+          "type": "string"
+        },
+        "itContact": {
+          "description": "Who to contact about problems (printed on the form).",
+          "type": "string"
+        },
+        "language": {
+          "description": "Language of the handover form.",
+          "enum": [
+            "en",
+            "es"
+          ]
+        }
+      }
+    },
+    "applications": {
+      "description": "Applications installed with winget. Inherited lists are added together; an entry with the same id replaces the parent's.",
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "#/definitions/packageId"
+          },
+          {
+            "type": "object",
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "$ref": "#/definitions/packageId"
+              },
+              "name": {
+                "description": "Friendly name for the handover form.",
+                "type": "string"
+              },
+              "source": {
+                "description": "winget (default) or msstore (cannot install as SYSTEM).",
+                "enum": [
+                  "winget",
+                  "msstore"
+                ]
+              },
+              "scope": {
+                "description": "Install for the whole machine or for the user.",
+                "enum": [
+                  "machine",
+                  "user"
+                ]
+              },
+              "version": {
+                "description": "Pin an exact version.",
+                "type": "string",
+                "pattern": "^[A-Za-z0-9.+_-]{1,64}$"
+              },
+              "override": {
+                "description": "Replace the installer's own silent arguments (winget --override).",
+                "type": "string"
+              },
+              "custom": {
+                "description": "Extra installer arguments (winget --custom).",
+                "type": "string"
+              },
+              "required": {
+                "description": "false: a failure is a note on the form, not a failed provisioning.",
+                "type": "boolean"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "removeApplications": {
+      "description": "Package ids inherited from the parent profile that this department must not get.",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/packageId"
+      }
+    },
+    "printers": {
+      "description": "Network (TCP/IP) printers added for the whole machine. Inherited lists are added together; an entry with the same name replaces the parent's.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "address",
+          "driver"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "description": "Printer name as users will see it.",
+            "type": "string",
+            "pattern": "^[^\\[\\]*?\\\\,\"]{1,200}$"
+          },
+          "address": {
+            "description": "IP address or host name of the printer.",
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9.-]{0,252}$"
+          },
+          "driver": {
+            "description": "Exact driver name, as Get-PrinterDriver shows it on a PC that has it.",
+            "type": "string",
+            "maxLength": 200
+          },
+          "driverInf": {
+            "description": "Full path of the driver's .inf (local or \\\\server\\share), staged with pnputil when the driver is missing.",
+            "type": "string",
+            "pattern": "^([A-Za-z]:\\\\|\\\\\\\\[A-Za-z0-9._-]+\\\\)[^\"*?<>|]+\\.inf$"
+          },
+          "port": {
+            "description": "Raw TCP port (default 9100).",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65535
+          },
+          "location": {
+            "type": "string"
+          },
+          "comment": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "security": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "bitlocker": {
+          "description": "System drive encryption. false to skip the check.",
+          "oneOf": [
+            {
+              "type": "boolean",
+              "const": false
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "description": "Report: check only. Enable: encrypt with TPM after escrowing the recovery key.",
+                  "enum": [
+                    "Report",
+                    "Enable"
+                  ]
+                },
+                "encryptionMethod": {
+                  "enum": [
+                    "XtsAes128",
+                    "XtsAes256",
+                    "Aes128",
+                    "Aes256"
+                  ]
+                },
+                "usedSpaceOnly": {
+                  "description": "Encrypt used space only (fast on new disks).",
+                  "type": "boolean"
+                },
+                "requireKeyEscrow": {
+                  "description": "Do not encrypt unless the key is stored in Entra ID or AD. Keep true.",
+                  "type": "boolean"
+                }
+              }
+            }
+          ]
+        },
+        "disableSmb1": {
+          "description": "Turn off the SMB 1.0 server and optional feature.",
+          "type": "boolean"
+        },
+        "firewall": {
+          "oneOf": [
+            {
+              "type": "boolean",
+              "const": false
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enableAllProfiles": {
+                  "type": "boolean"
+                },
+                "defaultInboundAction": {
+                  "enum": [
+                    "Block",
+                    "Allow"
+                  ]
+                },
+                "defaultOutboundAction": {
+                  "enum": [
+                    "Block",
+                    "Allow"
+                  ]
+                },
+                "logBlocked": {
+                  "description": "Log dropped packets.",
+                  "type": "boolean"
+                },
+                "rules": {
+                  "description": "Rules created if missing (matched by displayName). Inherited rules are added together.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "displayName"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "displayName": {
+                        "type": "string",
+                        "pattern": "^[^\\[\\]*?]+$"
+                      },
+                      "direction": {
+                        "enum": [
+                          "Inbound",
+                          "Outbound"
+                        ]
+                      },
+                      "action": {
+                        "enum": [
+                          "Allow",
+                          "Block"
+                        ]
+                      },
+                      "protocol": {
+                        "enum": [
+                          "TCP",
+                          "UDP",
+                          "ICMPv4",
+                          "ICMPv6",
+                          "Any"
+                        ]
+                      },
+                      "localPort": {
+                        "$ref": "#/definitions/ports"
+                      },
+                      "remotePort": {
+                        "$ref": "#/definitions/ports"
+                      },
+                      "remoteAddress": {
+                        "description": "Addresses, ranges or subnets, comma separated.",
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9.:/,_-]+$"
+                      },
+                      "profile": {
+                        "description": "Any, or a comma separated list of Domain, Private, Public.",
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "removeBloatware": {
+          "description": "Appx package names (wildcards allowed) removed for all users and from the image. Protected system packages are refused.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9.*?_-]+$"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "packageId": {
+      "description": "winget package id, e.g. 7zip.7zip",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9.+_-]{0,127}$"
+    },
+    "ports": {
+      "description": "A port, a range (5000-5010) or a comma separated list.",
+      "type": "string",
+      "pattern": "^(Any|\\d{1,5}(-\\d{1,5})?(,\\d{1,5}(-\\d{1,5})?)*)$"
+    }
+  }
+}
