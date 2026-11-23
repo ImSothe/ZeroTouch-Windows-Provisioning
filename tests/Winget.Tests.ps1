@@ -10,7 +10,7 @@ Test-Case 'Install-ZTApplication: an installed application is left alone and its
     $r = Install-ZTApplication -Application '7zip.7zip' -RetryDelaySeconds 0
     Assert-Equal 'AlreadyInstalled' $r.Status 'status'
     Assert-Equal '24.08' $r.Version 'version'
-    Assert-Equal 0 (Get-WingetCalls 'install').Count 'install calls'
+    Assert-Equal 0 @(Get-WingetCalls 'install').Count 'install calls'
     Assert-Equal 'app.alreadyInstalled' $r.Message 'message key'
 }
 
@@ -40,7 +40,7 @@ Test-Case 'Install-ZTApplication: transient failures are retried until they succ
     $r = Install-ZTApplication -Application 'WinSCP.WinSCP' -MaxRetries 2 -RetryDelaySeconds 0
     Assert-Equal 'Installed' $r.Status 'status'
     Assert-Equal 3 $r.Attempts 'attempts'
-    Assert-Equal 3 (Get-WingetCalls 'install').Count 'install calls'
+    Assert-Equal 3 @(Get-WingetCalls 'install').Count 'install calls'
 }
 
 Test-Case 'Install-ZTApplication: gives up after MaxRetries with an explained error' {
@@ -80,15 +80,15 @@ Test-Case 'Install-ZTApplication: "already installed" returned by install is not
 Test-Case 'Install-ZTApplication: -WhatIf checks but does not install' {
     $r = Install-ZTApplication -Application 'Zoom.Zoom' -RetryDelaySeconds 0 -WhatIf
     Assert-Equal 'WhatIf' $r.Status 'status'
-    Assert-Equal 1 (Get-WingetCalls 'list').Count 'list calls'
-    Assert-Equal 0 (Get-WingetCalls 'install').Count 'install calls'
+    Assert-Equal 1 @(Get-WingetCalls 'list').Count 'list calls'
+    Assert-Equal 0 @(Get-WingetCalls 'install').Count 'install calls'
 }
 
 Test-Case 'Install-ZTApplication: an invalid id is refused before winget runs' {
     foreach ($id in '7zip.7zip; calc', '--source x', '7zip.7zip && calc', '$(calc)', '') {
         Assert-Throws { Install-ZTApplication -Application @{ id = $id } -RetryDelaySeconds 0 } -Like '*Invalid package id*' -What ('id "{0}"' -f $id)
     }
-    Assert-Equal 0 (Get-FakeCall -Name 'winget').Count 'winget calls'
+    Assert-Equal 0 @(Get-FakeCall -Name 'winget').Count 'winget calls'
 }
 
 Test-Case 'Get-ZTVersionFromList: reads the version column by token, not by position' {

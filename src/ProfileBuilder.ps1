@@ -96,7 +96,9 @@ function Read-ZTDepartmentCsv {
         throw ("'{0}' needs a department column (Departamento/Department) and a package id column (Id/PackageId). Found: {1}" -f $Path, ($headers -join ', '))
     }
 
-    $departments = [ordered]@{}
+    $order = New-Object -TypeName System.Collections.Generic.List[string]
+    $names = @{}
+    $apps = @{}
     $line = 1
     foreach ($row in $rows) {
         $line++
@@ -111,16 +113,20 @@ function Read-ZTDepartmentCsv {
             continue
         }
         $slug = ConvertTo-ZTSlug -Text $department
-        if (-not $departments.Contains($slug)) {
-            $departments[$slug] = [ordered]@{ Name = $slug; DisplayName = $department; Applications = (New-Object -TypeName System.Collections.Generic.List[object]) }
+        if (-not $apps.ContainsKey($slug)) {
+            $order.Add($slug)
+            $names[$slug] = $department
+            $apps[$slug] = New-Object -TypeName System.Collections.Generic.List[object]
         }
         $entry = [ordered]@{ id = $id }
         if ($columns['Name'] -and ([string]$row.($columns['Name'])).Trim()) { $entry['name'] = ([string]$row.($columns['Name'])).Trim() }
         if ($columns['Version'] -and ([string]$row.($columns['Version'])).Trim()) { $entry['version'] = ([string]$row.($columns['Version'])).Trim() }
         if ($columns['Required'] -and -not (ConvertTo-ZTRequired -Value $row.($columns['Required']))) { $entry['required'] = $false }
-        $departments[$slug]['Applications'].Add($entry)
+        $apps[$slug].Add($entry)
     }
-    foreach ($key in $departments.Keys) { $departments[$key] }
+    foreach ($slug in $order) {
+        [pscustomobject]@{ Name = $slug; DisplayName = $names[$slug]; Applications = $apps[$slug].ToArray(); Printers = @() }
+    }
 }
 
 # Drops excluded packages, packages the parent profile already installs, and duplicates.
@@ -234,11 +240,11 @@ function New-ZTDepartmentProfile {
         }
         'PackageId' {
             $apps = @($PackageId | ForEach-Object { $_ -split '[,;\s]+' } | Where-Object { $_ } | ForEach-Object { [ordered]@{ id = $_ } })
-            $sets.Add([ordered]@{ Name = $Name; DisplayName = $DisplayName; Applications = $apps })
+            $sets.Add([pscustomobject]@{ Name = $Name; DisplayName = $DisplayName; Applications = $apps; Printers = @() })
         }
         'ExportFile' {
             $apps = @(Read-ZTWingetExport -Path $ExportFile -IncludeMsStore:$IncludeMsStore -PinVersions:$PinVersions)
-            $sets.Add([ordered]@{ Name = $Name; DisplayName = $DisplayName; Applications = $apps })
+            $sets.Add([pscustomobject]@{ Name = $Name; DisplayName = $DisplayName; Applications = $apps; Printers = @() })
         }
         'FromThisComputer' {
             $exportPath = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath ('zt-export-{0}.json' -f [guid]::NewGuid().ToString('N'))
@@ -253,18 +259,18 @@ function New-ZTDepartmentProfile {
                 if (Test-Path -LiteralPath $exportPath) { [System.IO.File]::Delete($exportPath) }
             }
             $printers = @(Get-ZTNetworkPrinter)
-            $sets.Add([ordered]@{ Name = $Name; DisplayName = $DisplayName; Applications = $apps; Printers = $printers })
+            $sets.Add([pscustomobject]@{ Name = $Name; DisplayName = $DisplayName; Applications = $apps; Printers = $printers })
         }
     }
 
     foreach ($set in $sets) {
-        $profileName = ConvertTo-ZTSlug -Text ([string]$set['Name'])
-        if ($profileName -notmatch $script:ZTProfileNamePattern) { throw ("'{0}' cannot be used as a profile name." -f $set['Name']) }
+        $profileName = ConvertTo-ZTSlug -Text ([string]$set.Name)
+        if ($profileName -notmatch $script:ZTProfileNamePattern) { throw ("'{0}' cannot be used as a profile name." -f $set.Name) }
         if ($Extends -and $profileName -eq $Extends) { throw ("A department cannot be called like its parent profile ('{0}')." -f $Extends) }
-        $selection = Select-ZTProfileApplication -Applications @($set['Applications']) -ExcludePattern $ExcludePattern -InheritedIds $inheritedIds
-        $printers = @(@($set['Printers']) | Where-Object { $_ -and -not $inheritedPrinters.ContainsKey(([string]$_['name']).ToLowerInvariant()) })
-        $display = [string]$set['DisplayName']
-        if (-not $display) { $display = [string]$set['Name'] }
+        $selection = Select-ZTProfileApplication -Applications @($set.Applications) -ExcludePattern $ExcludePattern -InheritedIds $inheritedIds
+        $printers = @(@($set.Printers) | Where-Object { $_ -and -not $inheritedPrinters.ContainsKey(([string]$_['name']).ToLowerInvariant()) })
+        $display = [string]$set.DisplayName
+        if (-not $display) { $display = [string]$set.Name }
         $written = Write-ZTProfileFile -Name $profileName -DisplayName $display -Description $Description -Extends $Extends `
             -Applications $selection.Applications -Printers $printers -OutputDirectory $OutputDirectory -Force:$Force
         [pscustomobject]@{

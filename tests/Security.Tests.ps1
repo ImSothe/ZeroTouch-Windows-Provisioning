@@ -73,7 +73,7 @@ Test-Case 'The BitLocker recovery password never reaches the console, the log, t
     $script:Fake.Join.EntraJoined = $true
     $output = New-TestFolder
     $console = Invoke-ZTProvisioning -Department 'comercial' -ProfilesPath $RepoProfiles -OutputPath $output -RetryDelaySeconds 0 *>&1 | Out-String
-    Assert-Equal 1 (Get-FakeCall -Name 'Enable-BitLocker').Count 'the laptop was encrypted'
+    Assert-Equal 1 @(Get-FakeCall -Name 'Enable-BitLocker').Count 'the laptop was encrypted'
     Assert-True ($console -notlike ('*{0}*' -f $script:FakeRecoveryPassword)) 'console and warnings'
     foreach ($file in Get-ChildItem -LiteralPath $output -Recurse -File) {
         $text = [System.IO.File]::ReadAllText($file.FullName)
@@ -97,7 +97,7 @@ Test-Case 'Package ids that could inject arguments or commands are refused every
         $data = [ordered]@{ name = 'x'; applications = @(ConvertTo-ZTAppDefinition -InputObject $id) }
         Assert-True (@(Test-ZTProfile -ProfileData $data | Where-Object { $_.Severity -eq 'Error' }).Count -gt 0) ('profile accepted {0}' -f $id)
     }
-    Assert-Equal 0 (Get-FakeCall -Name 'winget').Count 'winget never ran'
+    Assert-Equal 0 @(Get-FakeCall -Name 'winget').Count 'winget never ran'
 }
 
 Test-Case 'Installer arguments from a profile stay single arguments' {
@@ -127,7 +127,7 @@ Test-Case 'Protected system apps cannot be removed: refused in the profile and s
     }
     Add-FakeAppx -Name 'Microsoft.SecHealthUI'
     Invoke-ZTSecurityBaseline -Settings @{ removeBloatware = @('Microsoft.SecHealth*') } | Out-Null
-    Assert-Equal 0 (Get-FakeCall -Name 'Remove-AppxPackage').Count 'Windows Security kept'
+    Assert-Equal 0 @(Get-FakeCall -Name 'Remove-AppxPackage').Count 'Windows Security kept'
 }
 
 # ---------------------------------------------------------------- the code itself

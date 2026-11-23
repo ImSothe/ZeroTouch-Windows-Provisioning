@@ -113,7 +113,7 @@ Test-Case 'New-ZTHandoverReport: -Pdf asks Edge for a PDF, never for a simulatio
     $simulation.Simulation = $true
     $report = New-ZTHandoverReport -Run $simulation -OutputDirectory (New-TestFolder) -Pdf
     Assert-Equal $null $report.PdfPath 'no PDF for a simulation'
-    Assert-Equal 1 (Get-FakeCall -Name 'ConvertTo-ZTPdf').Count 'Edge called once'
+    Assert-Equal 1 @(Get-FakeCall -Name 'ConvertTo-ZTPdf').Count 'Edge called once'
 }
 
 Test-Case 'Samples in docs\ match what tools\New-SampleHandover.ps1 generates' {

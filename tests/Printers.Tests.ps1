@@ -14,21 +14,21 @@ Test-Case 'Install-ZTPrinter: driver from the driver store, TCP/IP port, then th
     $queue = (Get-FakeCall -Name 'Add-Printer')[0].Parameters
     Assert-Equal 'IP_192.168.50.20' $queue.PortName 'queue on the port'
     Assert-Equal 'Nave 2' $queue.Location 'location'
-    Assert-Equal 0 (Get-FakeCall -Name 'Invoke-ZTPnpUtil').Count 'no driver package needed'
+    Assert-Equal 0 @(Get-FakeCall -Name 'Invoke-ZTPnpUtil').Count 'no driver package needed'
 }
 
 Test-Case 'Install-ZTPrinter: an existing printer is left alone' {
     Add-FakePrinter -Name 'Taller - Impresora de planta' -Address '192.168.50.20'
     $r = Install-ZTPrinter -Printer $plantPrinter
     Assert-Equal 'AlreadyInstalled' $r.Status 'status'
-    Assert-Equal 0 (Get-FakeChange).Count 'changes'
+    Assert-Equal 0 @(Get-FakeChange).Count 'changes'
 }
 
 Test-Case 'Install-ZTPrinter: an existing port and an installed driver are reused; custom ports get their own name' {
     Add-FakePrinter -Name 'Other printer' -Address '192.168.50.20'
     Install-ZTPrinter -Printer $plantPrinter | Out-Null
-    Assert-Equal 0 (Get-FakeCall -Name 'Add-PrinterPort').Count 'port reused'
-    Assert-Equal 0 (Get-FakeCall -Name 'Add-PrinterDriver').Count 'driver already installed'
+    Assert-Equal 0 @(Get-FakeCall -Name 'Add-PrinterPort').Count 'port reused'
+    Assert-Equal 0 @(Get-FakeCall -Name 'Add-PrinterDriver').Count 'driver already installed'
     Install-ZTPrinter -Printer @{ name = 'Label printer'; address = 'zebra-01.demo.lab'; driver = 'HP Universal Printing PCL 6'; port = 9101 } | Out-Null
     Assert-Equal 'IP_zebra-01.demo.lab_9101' (Get-FakeCall -Name 'Add-PrinterPort')[0].Parameters.Name 'port with number'
 }
@@ -38,8 +38,8 @@ Test-Case 'Install-ZTPrinter: a missing driver without a package fails clearly a
     Assert-Equal 'Failed' $r.Status 'status'
     Assert-Equal 'printer.driverMissing' $r.Message 'message'
     Assert-Like $r.Detail '*Vendor Plotter Driver*driverInf*' 'detail tells what to do'
-    Assert-Equal 0 (Get-FakeCall -Name 'Add-PrinterPort').Count 'no port'
-    Assert-Equal 0 (Get-FakeCall -Name 'Add-Printer').Count 'no queue'
+    Assert-Equal 0 @(Get-FakeCall -Name 'Add-PrinterPort').Count 'no port'
+    Assert-Equal 0 @(Get-FakeCall -Name 'Add-Printer').Count 'no queue'
 }
 
 Test-Case 'Install-ZTPrinter: driverInf stages the driver package with pnputil first' {
@@ -56,7 +56,7 @@ Test-Case 'Install-ZTPrinter: -WhatIf says what would happen and changes nothing
     Assert-Equal 'printer.whatIfDriver' $r.Message 'mentions the driver'
     $script:Fake.Print.Drivers.Add('HP Universal Printing PCL 6')
     Assert-Equal 'printer.whatIf' (Install-ZTPrinter -Printer $plantPrinter -WhatIf).Message 'driver already installed'
-    Assert-Equal 0 (Get-FakeChange).Count 'changes'
+    Assert-Equal 0 @(Get-FakeChange).Count 'changes'
 }
 
 Test-Case 'Install-ZTPrinter: invalid definitions are refused before anything runs' {

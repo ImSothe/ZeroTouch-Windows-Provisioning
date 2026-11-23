@@ -27,7 +27,7 @@ Test-Case 'Fresh office PC: apps installed, baseline applied, form written, rest
     Assert-True (Test-Path -LiteralPath $run.ReportPaths.HtmlPath) 'HTML form'
     Assert-True (Test-Path -LiteralPath $run.ReportPaths.JsonPath) 'JSON twin'
     Assert-Like $run.ReportPaths.HtmlPath '*\Reports\ZT-*-PC-OFI-014.html' 'form location and name'
-    $marker = Get-FakeCall -Name 'Set-ZTRegistryMarker'
+    $marker = @(Get-FakeCall -Name 'Set-ZTRegistryMarker')
     Assert-Equal 1 $marker.Count 'registry marker'
     Assert-Equal 'oficina' $marker[0].Parameters.Run.Profile.Name 'marker profile'
     $log = [System.IO.File]::ReadAllText($run.LogPath)
@@ -43,7 +43,7 @@ Test-Case 'Running it twice changes nothing the second time' {
     Assert-Equal 7 @($run.Applications | Where-Object { $_.Status -eq 'AlreadyInstalled' }).Count 'nothing reinstalled'
     Assert-Equal 'AlreadyInstalled' @($run.Printers)[0].Status 'printer kept'
     foreach ($control in 'SMBv1', 'Firewall', 'FirewallRules', 'Bloatware') { Assert-Equal 'Compliant' (Get-Result $run.Security $control).Status $control }
-    Assert-Equal 0 (Get-FakeChange).Count 'system changes on the second run'
+    Assert-Equal 0 @(Get-FakeChange).Count 'system changes on the second run'
     Assert-Equal 0 $run.ExitCode 'no restart needed any more'
 }
 
@@ -51,7 +51,7 @@ Test-Case '-WhatIf: checks everything, changes nothing, writes a simulation form
     Set-FakeFreshPc
     $script:Fake.IsAdmin = $false
     $run = Invoke-TestProvisioning -Department 'comercial' -WhatIf
-    Assert-Equal 0 (Get-FakeChange).Count ('changes: {0}' -f ((Get-FakeChange | ForEach-Object { $_.Name }) -join ', '))
+    Assert-Equal 0 @(Get-FakeChange).Count ('changes: {0}' -f ((Get-FakeChange | ForEach-Object { $_.Name }) -join ', '))
     Assert-Equal 'Simulation' $run.Outcome.Status 'outcome'
     Assert-Equal 0 $run.ExitCode 'exit code'
     Assert-True $run.Simulation 'run flagged'
@@ -60,13 +60,13 @@ Test-Case '-WhatIf: checks everything, changes nothing, writes a simulation form
     Assert-Equal 'WhatIf' @($run.Printers)[0].Status 'would add the office printer'
     $html = [System.IO.File]::ReadAllText($run.ReportPaths.HtmlPath, [System.Text.Encoding]::UTF8)
     Assert-True ($html.Contains('class="banner"')) 'simulation banner'
-    Assert-Equal 0 (Get-FakeCall -Name 'Set-ZTRegistryMarker').Count 'no registry marker'
+    Assert-Equal 0 @(Get-FakeCall -Name 'Set-ZTRegistryMarker').Count 'no registry marker'
 }
 
 Test-Case 'Without administrator rights a real run stops before changing anything' {
     $script:Fake.IsAdmin = $false
     Assert-Throws { Invoke-TestProvisioning } -Like '*as administrator*'
-    Assert-Equal 0 (Get-FakeChange).Count 'changes'
+    Assert-Equal 0 @(Get-FakeChange).Count 'changes'
 }
 
 Test-Case 'A failed required app fails the run; a failed optional app is only a note' {
@@ -90,8 +90,8 @@ Test-Case 'A healthy PC with everything installed is simply compliant' {
     $run = Invoke-TestProvisioning
     Assert-Equal 'Success' $run.Outcome.Status 'outcome'
     Assert-Equal 0 $run.ExitCode 'exit code'
-    Assert-Equal 0 (Get-FakeChange).Count 'changes'
-    Assert-Equal 1 (Get-FakeCall -Name 'Set-ZTRegistryMarker').Count 'marker written on a real run'
+    Assert-Equal 0 @(Get-FakeChange).Count 'changes'
+    Assert-Equal 1 @(Get-FakeCall -Name 'Set-ZTRegistryMarker').Count 'marker written on a real run'
 }
 
 Test-Case 'No winget: every app is reported, nothing else is skipped' {
@@ -105,9 +105,9 @@ Test-Case 'No winget: every app is reported, nothing else is skipped' {
 Test-Case '-SkipApplications, -SkipPrinters and -SkipSecurity' {
     $run = Invoke-TestProvisioning -Extra @{ SkipApplications = $true; SkipPrinters = $true }
     Assert-Equal 0 @($run.Applications).Count 'no apps'
-    Assert-Equal 0 @(Get-FakeCall -Name 'winget').Count 'winget not called'
+    Assert-Equal 0 @@(Get-FakeCall -Name 'winget').Count 'winget not called'
     Assert-Equal 0 @($run.Printers).Count 'no printers'
-    Assert-Equal 0 @(Get-FakeCall -Name 'Get-Printer').Count 'printers not touched'
+    Assert-Equal 0 @@(Get-FakeCall -Name 'Get-Printer').Count 'printers not touched'
     $run = Invoke-TestProvisioning -Extra @{ SkipSecurity = $true }
     Assert-Equal 0 @($run.Security).Count 'no baseline'
     Assert-Equal 7 @($run.Applications).Count 'apps still installed'

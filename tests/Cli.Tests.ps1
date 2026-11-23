@@ -17,7 +17,7 @@ Test-Case 'CLI: -ListDepartments shows the departments and hides base' {
     $r = Invoke-Script -Path $provisionScript -Arguments @('-ListDepartments')
     Assert-Equal 0 $r.ExitCode ('exit code. Output: {0}' -f $r.Output)
     foreach ($name in 'oficina', 'taller', 'comercial') { Assert-True ($r.Output -match "\b$name\b") ('{0} listed' -f $name) }
-    Assert-True ($r.Output -notmatch '\bbase\b') 'base hidden'
+    Assert-True ($r.Output -notmatch 'Base corporativa') 'base (abstract) hidden'
 }
 
 Test-Case 'CLI: an unknown department exits with 1 before touching anything' {
@@ -55,7 +55,8 @@ Test-Case 'CLI: help is complete for both scripts' {
 }
 
 Test-Case 'CLI: every script parses cleanly' {
-    foreach ($file in Get-ChildItem -LiteralPath $root -Recurse -Include '*.ps1' -File) {
+    # -Include is ignored together with -LiteralPath on Windows PowerShell 5.1: filter by extension.
+    foreach ($file in @(Get-ChildItem -LiteralPath $root -Recurse -File | Where-Object { $_.Extension -eq '.ps1' })) {
         $errors = $null
         [void][System.Management.Automation.Language.Parser]::ParseFile($file.FullName, [ref]$null, [ref]$errors)
         Assert-Equal 0 @($errors).Count ('{0}: {1}' -f $file.Name, (@($errors) -join ' | '))
@@ -63,7 +64,7 @@ Test-Case 'CLI: every script parses cleanly' {
 }
 
 Test-Case 'CLI: scripts are ASCII so Windows PowerShell 5.1 reads them correctly' {
-    foreach ($file in Get-ChildItem -LiteralPath $root -Recurse -Include '*.ps1', '*.cmd' -File) {
+    foreach ($file in @(Get-ChildItem -LiteralPath $root -Recurse -File | Where-Object { @('.ps1', '.cmd') -contains $_.Extension })) {
         $bytes = [System.IO.File]::ReadAllBytes($file.FullName)
         $offending = @($bytes | Where-Object { $_ -gt 127 }).Count
         Assert-Equal 0 $offending ('non-ASCII bytes in {0}' -f $file.Name)
