@@ -84,7 +84,8 @@ Test-Case 'Profiles: drivers settings are validated and peripherals inherited by
     Assert-Equal '\\srv\drivers\Models' $child['drivers']['packs'] 'packs inherited'
     Assert-Equal 'dock:\\srv\d\dock-v2,Zebra:\\srv\d\zebra' ((@($child['drivers']['peripherals']) | ForEach-Object { '{0}:{1}' -f $_['name'], $_['path'] }) -join ',') 'peripherals merged by name'
     $text = (@(Test-ZTProfile -ProfileData (Get-ZTProfile -Name 'bad' -ProfilesPath $folder -SkipValidation)) | ForEach-Object { $_.Message }) -join ' | '
-    foreach ($expected in '*drivers.packs must be a full path*', "*peripherals[1]: missing 'name'*", "*peripherals[2]: missing 'path'*", "*unknown key 'version'*", "*Unknown drivers setting 'auto'*") {
+    # In -like patterns [1] is a character class: ? stands for the brackets.
+    foreach ($expected in '*drivers.packs must be a full path*', "*peripherals?1?: missing 'name'*", "*peripherals?2?: missing 'path'*", "*unknown key 'version'*", "*Unknown drivers setting 'auto'*") {
         Assert-Like $text $expected 'validation'
     }
 }
