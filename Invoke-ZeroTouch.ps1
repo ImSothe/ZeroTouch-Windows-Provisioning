@@ -118,6 +118,8 @@ if ([Environment]::Is64BitOperatingSystem -and -not [Environment]::Is64BitProces
 foreach ($file in 'Common', 'Profile', 'Drivers', 'Winget', 'Printers', 'Hardening', 'Device', 'Handover', 'ProfileBuilder', 'Provision') {
     . (Join-Path -Path $PSScriptRoot -ChildPath ('src\{0}.ps1' -f $file))
 }
+# Load CimCmdlets now: auto-loaded later under -WhatIf, it prints a "What if: Set Alias" line per alias.
+& { $WhatIfPreference = $false; Import-Module -Name CimCmdlets -ErrorAction SilentlyContinue }
 
 $listArguments = @{}
 if ($ProfilesPath) { $listArguments['ProfilesPath'] = $ProfilesPath }
