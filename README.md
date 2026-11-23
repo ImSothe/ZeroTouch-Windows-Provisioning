@@ -4,6 +4,8 @@
 ![PowerShell 5.1 | 7](https://img.shields.io/badge/PowerShell-5.1%20%7C%207-5391FE?logo=powershell&logoColor=white)
 ![Windows 10 | 11](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows&logoColor=white)
 ![winget](https://img.shields.io/badge/apps-winget-0078D4)
+![Tests](https://img.shields.io/badge/tests-136%20passing-success)
+![PSScriptAnalyzer](https://img.shields.io/badge/PSScriptAnalyzer-security%20rules%20clean-success)
 ![Intune ready](https://img.shields.io/badge/Intune-Win32%20app%20ready-2e7d32)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
@@ -308,9 +310,14 @@ powershell -ExecutionPolicy Bypass -File .\tests\Run-Tests.ps1 -Filter Hardening
 | [Cli.Tests.ps1](tests/Cli.Tests.ps1) | 8 | The scripts in a child process, help for every parameter, clean parsing, ASCII sources, the launcher's CRLF. |
 | [Device.Tests.ps1](tests/Device.Tests.ps1) | 4 | Inventory fields, Lenovo model names, laptops, VMs, hybrid join, legacy BIOS, missing data. |
 
-**Not yet run on a physical PC.** The real cmdlets are only exercised read-only (`-WhatIf` on the CI
-runner). Before using it on production PCs, run it on a VM: `-WhatIf` first, then for real, and keep a
-checkpoint. If something fails on your hardware, please open an issue with the log.
+- **Real Windows, read-only:** on the GitHub Windows runner, `-WhatIf` of the `comercial` profile
+  used the real winget (it found 7-Zip and Chrome already installed and read their versions), the
+  real firewall (all three profiles *NotConfigured*), Appx (Feedback Hub found as removable) and
+  BitLocker (no TPM on the VM, so correctly not enabled), and wrote the simulation form. CI keeps it
+  as an artifact.
+- **Not yet run for real on a physical PC.** Before using it on production PCs, run it on a VM:
+  `-WhatIf` first, then for real, and keep a checkpoint. If something fails on your hardware, please
+  open an issue with the log.
 
 ## Good to know
 
