@@ -52,6 +52,40 @@
         }
       }
     },
+    "drivers": {
+      "description": "Drivers added to the Windows driver store before anything else.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "packs": {
+          "description": "Root folder of the per-model driver packs (<root>\\<make>\\<model>). Applied only to PCs of that exact model.",
+          "type": "string",
+          "pattern": "^([A-Za-z]:\\\\|\\\\\\\\[A-Za-z0-9._-]+\\\\)[^\"*?<>|]*$"
+        },
+        "peripherals": {
+          "description": "The department's peripheral drivers (label printers, docks, touch screens...). Inherited lists are added together, matched by name.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "path"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "path": {
+                "description": "Driver folder (searched recursively) or .inf file.",
+                "type": "string",
+                "pattern": "^([A-Za-z]:\\\\|\\\\\\\\[A-Za-z0-9._-]+\\\\)[^\"*?<>|]*$"
+              }
+            }
+          }
+        }
+      }
+    },
     "applications": {
       "description": "Applications installed with winget. Inherited lists are added together; an entry with the same id replaces the parent's.",
       "type": "array",

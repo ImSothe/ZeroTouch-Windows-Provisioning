@@ -43,6 +43,17 @@ function Reset-FakeWindows {
             Staged      = (New-Object -TypeName System.Collections.Generic.List[string])
             InfDrivers  = @()
             PnpExitCode = 0
+            DriverInfs  = @{}
+        }
+        # Driver folders and shares that exist, pnputil exit codes per path, and the PC's third-party drivers.
+        Drivers        = @{
+            Available  = (New-Object -TypeName System.Collections.Generic.List[string])
+            ExitCodes  = @{}
+            ThirdParty = @(
+                [pscustomobject]@{ Driver = 'oem3.inf'; ClassName = 'Net'; ProviderName = 'Intel' },
+                [pscustomobject]@{ Driver = 'oem7.inf'; ClassName = 'Display'; ProviderName = 'Intel Corporation' },
+                [pscustomobject]@{ Driver = 'oem9.inf'; ClassName = 'System'; ProviderName = 'INTEL' }
+            )
         }
     }
     # A PC out of the box has the PDF printer, and the HP universal driver in its driver store.
@@ -140,7 +151,7 @@ function Get-FakeCall {
 function Get-FakeChange {
     @($script:Fake.Calls | Where-Object {
             ($_.Name -match '^(Set|New|Remove|Enable|Disable|Add|Resume|Backup|BackupToAAD)-' -and $_.Name -ne 'Set-ZTRegistryMarker') -or
-            ($_.Name -eq 'Invoke-ZTPnpUtil') -or
+            ($_.Name -eq 'Invoke-ZTPnpUtil') -or ($_.Name -eq 'Invoke-ZTDriverInstall') -or
             ($_.Name -eq 'winget' -and @('install', 'uninstall', 'export') -contains $_.Parameters.ArgumentList[0])
         })
 }
@@ -446,7 +457,9 @@ function Get-PrinterDriver {
     [CmdletBinding()]
     param([string]$Name)
     Register-FakeCall -Name 'Get-PrinterDriver' -Parameters @{ Name = $Name }
-    if ($script:Fake.Print.Drivers -contains $Name) { [pscustomobject]@{ Name = $Name } }
+    $infPath = ''
+    if ($script:Fake.Print.DriverInfs.ContainsKey($Name)) { $infPath = $script:Fake.Print.DriverInfs[$Name] }
+    if ($script:Fake.Print.Drivers -contains $Name) { [pscustomobject]@{ Name = $Name; InfPath = $infPath } }
 }
 
 function Add-PrinterDriver {
@@ -479,6 +492,31 @@ function Invoke-ZTPnpUtil {
         foreach ($driver in @($script:Fake.Print.InfDrivers)) { $script:Fake.Print.Staged.Add($driver) }
     }
     [pscustomobject]@{ ExitCode = $script:Fake.Print.PnpExitCode; Output = @('Driver package added (fake).') }
+}
+
+# ------------------------------------------------------------------ drivers
+
+function Test-ZTDriverSource {
+    param([Parameter(Mandatory)][string]$Path)
+    Register-FakeCall -Name 'Test-ZTDriverSource' -Parameters @{ Path = $Path }
+    $script:Fake.Drivers.Available -contains $Path
+}
+
+function Invoke-ZTDriverInstall {
+    param([Parameter(Mandatory)][string]$Path)
+    Register-FakeCall -Name 'Invoke-ZTDriverInstall' -Parameters @{ Path = $Path }
+    $code = 0
+    if ($script:Fake.Drivers.ExitCodes.ContainsKey($Path)) { $code = [int]$script:Fake.Drivers.ExitCodes[$Path] }
+    $output = @('Microsoft PnP Utility', 'Driver package added successfully.')
+    if (@(0, 259, 3010) -notcontains $code) { $output = @('Microsoft PnP Utility', 'Failed to add driver package: Access is denied.') }
+    [pscustomobject]@{ ExitCode = $code; Output = $output }
+}
+
+function Export-WindowsDriver {
+    [CmdletBinding()]
+    param([switch]$Online, [string]$Destination)
+    Register-FakeCall -Name 'Export-WindowsDriver' -Parameters @{ Destination = $Destination; Online = [bool]$Online }
+    $script:Fake.Drivers.ThirdParty
 }
 
 # ------------------------------------------------------------------ inventory

@@ -2,7 +2,7 @@
 # Department profiles: loading, inheritance ("extends"), normalisation and validation.
 
 $script:ZTProfileKeys = @('$schema', 'name', 'displayName', 'description', 'extends', 'abstract', 'organization',
-    'applications', 'removeApplications', 'printers', 'security', 'sourceFiles')
+    'applications', 'removeApplications', 'printers', 'drivers', 'security', 'sourceFiles')
 $script:ZTApplicationKeys = @('id', 'name', 'source', 'scope', 'version', 'override', 'custom', 'required')
 $script:ZTSecurityKeys = @('bitlocker', 'disableSmb1', 'firewall', 'removeBloatware')
 
@@ -250,6 +250,34 @@ function Test-ZTProfile {
         elseif ($printer['driver'].Length -gt 200 -or $printer['driver'] -match '["\r\n]') { Add-Issue 'Error' ("{0}: invalid driver name." -f $label) }
         if ($printer['port'] -lt 1 -or $printer['port'] -gt 65535) { Add-Issue 'Error' ("{0}: port must be a number from 1 to 65535." -f $label) }
         if ($printer['driverInf'] -and $printer['driverInf'] -notmatch $script:ZTInfPathPattern) { Add-Issue 'Error' ("{0}: driverInf must be the full path of an .inf file (C:\... or \\server\...)." -f $label) }
+    }
+
+    # ---- drivers
+    $drivers = $ProfileData['drivers']
+    if ($null -ne $drivers -and $drivers -isnot [System.Collections.IDictionary]) {
+        Add-Issue 'Error' "'drivers' must be an object."
+    }
+    elseif ($null -ne $drivers) {
+        foreach ($key in $drivers.Keys) {
+            if ($script:ZTDriverKeys -notcontains $key) { Add-Issue 'Warning' ("Unknown drivers setting '{0}' (typo?). It is ignored." -f $key) }
+        }
+        if ($drivers['packs'] -and [string]$drivers['packs'] -notmatch $script:ZTDriverPathPattern) {
+            Add-Issue 'Error' ("drivers.packs must be a full path (C:\... or \\server\share\...): '{0}'." -f $drivers['packs'])
+        }
+        $driverIndex = 0
+        foreach ($entry in @($drivers['peripherals'])) {
+            if ($null -eq $entry) { continue }
+            $driverIndex++
+            $label = 'drivers.peripherals[{0}]' -f $driverIndex
+            if ($entry -isnot [System.Collections.IDictionary]) { Add-Issue 'Error' ("{0} must be an object." -f $label); continue }
+            foreach ($key in $entry.Keys) {
+                if ($script:ZTPeripheralKeys -notcontains $key) { Add-Issue 'Warning' ("{0}: unknown key '{1}' (typo?). It is ignored." -f $label, $key) }
+            }
+            if (-not ([string]$entry['name']).Trim()) { Add-Issue 'Error' ("{0}: missing 'name'." -f $label) }
+            $path = ([string]$entry['path']).Trim()
+            if (-not $path) { Add-Issue 'Error' ("{0}: missing 'path' (driver folder or .inf file)." -f $label) }
+            elseif ($path -notmatch $script:ZTDriverPathPattern) { Add-Issue 'Error' ("{0}: path must be a full path (C:\... or \\server\share\...): '{1}'." -f $label, $path) }
+        }
     }
 
     # ---- security

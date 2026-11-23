@@ -43,6 +43,7 @@
   .pill.warn { background: var(--warn-bg); color: var(--warn); }
   .pill.fail { background: var(--fail-bg); color: var(--fail); }
   .pill.sim { background: var(--sim-bg); color: var(--sim); }
+  .pill.muted { background: var(--panel); color: var(--muted); }
   .tag { font-size: 10px; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; margin-left: 4px; font-weight: 400; }
   ul.notes { margin: 0; padding-left: 18px; }
   ul.notes li { margin: 2px 0; }
@@ -84,7 +85,7 @@
   </div>
 </header>
 
-<div class="status warn"><strong>CONFORME CON OBSERVACIONES</strong><span>Aplicaciones: 7 (instaladas: 5, ya presentes: 1, con error: 1) &middot; Impresoras: 1 (añadidas: 1, ya presentes: 0, con error: 0) &middot; Controles de seguridad: 5 (conformes: 1, corregidos: 4, requieren atención: 0)</span></div>
+<div class="status warn"><strong>CONFORME CON OBSERVACIONES</strong><span>Aplicaciones: 7 (instaladas: 5, ya presentes: 1, con error: 1) &middot; Controladores: 2 (añadidos: 2, con error: 0, omitidos: 0) &middot; Impresoras: 1 (añadidas: 1, ya presentes: 0, con error: 0) &middot; Controles de seguridad: 5 (conformes: 1, corregidos: 4, requieren atención: 0)</span></div>
 <div class="notice">Reinicie el equipo para terminar de aplicar algunos cambios.</div>
 
 <h2>1. Asignación</h2>
@@ -149,7 +150,18 @@
 </table>
 </div>
 
-<h2>5. Impresoras</h2>
+<h2>5. Controladores</h2>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Controlador</th><th>Tipo</th><th>Estado</th><th>Detalle</th></tr></thead>
+  <tbody>
+    <tr><td>LENOVO ThinkCentre M70q Gen 3</td><td>Pack del modelo</td><td><span class="pill ok">Añadido</span></td><td class="detail">Añadidos al almacén de controladores de Windows desde \\srv-files\drivers\Models\LENOVO\ThinkCentre M70q Gen 3.</td></tr>
+    <tr><td>Zebra ZD421 (etiquetas)</td><td>Periférico</td><td><span class="pill ok">Añadido</span></td><td class="detail">Añadidos al almacén de controladores de Windows desde \\srv-files\drivers\Perifericos\zebra-zd421.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2>6. Impresoras</h2>
 <div class="table-wrap">
 <table>
   <thead><tr><th>Impresora</th><th>Dirección</th><th>Controlador</th><th>Estado</th><th>Detalle</th></tr></thead>
@@ -159,13 +171,13 @@
 </table>
 </div>
 
-<h2>6. Observaciones</h2>
+<h2>7. Observaciones</h2>
 <ul class="notes">
   <li>LibreCAD: La descarga falló; revise el acceso a internet o el proxy (0x8A150008).</li>
   <li>Notas del técnico: Se entrega con teclado, monitor de 24 pulgadas y cable de red.</li>
 </ul>
 
-<h2>7. Conformidad</h2>
+<h2>8. Conformidad</h2>
 <p class="terms">La persona abajo firmante declara recibir de Demo Corp S.L. el equipo descrito, en correcto estado de funcionamiento y con el software indicado, y se compromete a usarlo conforme a la política de uso aceptable de la empresa. Cualquier incidencia debe comunicarse a Soporte TI (ext. 200).</p>
 <div class="signatures">
   <div class="sign"><strong>Entrega (TI)</strong><span class="who">Sothe</span><div class="line">Firma y fecha</div></div>

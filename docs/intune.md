@@ -102,6 +102,10 @@ its box, the user signs in, and it is provisioned as a sales laptop without anyo
 - **BitLocker `Enable` needs a place for the key.** On an Entra ID joined PC the recovery key is
   escrowed to Entra ID before encryption starts; on a domain PC, to Active Directory (the domain
   must allow it). With neither, ZeroTouch does not encrypt and says so on the form.
+- **Driver packs and peripheral drivers.** The same applies to `drivers.packs` and `peripherals`: as
+  SYSTEM they are read with the computer account. A model pack can be large (hundreds of MB): on PCs
+  without line of sight to the share, ship the pack as its own Win32 app and point `packs` to its local
+  folder (for example `C:\ProgramData\Drivers\Models`).
 - **Printer drivers.** As SYSTEM, `driverInf` must point to a share the computer account can read
   (*Domain Computers* on the share and the folder), or to a local path that another Win32 app filled.
   On a PC that is only Entra ID joined there is no computer account for SMB, so ship the driver as its
@@ -118,6 +122,8 @@ day one, with or without Intune. As Intune takes over, each part has a native eq
 |---|---|
 | Applications from the profile | Win32 apps, or WinGet apps (*Microsoft Store app (new)*), assigned per group |
 | Network printers | Universal Print, or a Win32 app with the driver plus a printer configuration script |
+| Model driver packs | *Windows Update for Business* driver and firmware updates, or the maker's update tool |
+| Peripheral drivers | A Win32 app that runs `pnputil /add-driver` for the package |
 | BitLocker check / enable with key escrow | *Endpoint security > Disk encryption*: BitLocker policy with silent enablement and key backup to Entra ID |
 | SMBv1 off | Security baselines and the settings catalog (*MS Security Guide*: SMB v1 server and client driver) |
 | Firewall defaults and rules | *Endpoint security > Firewall* and firewall rules policies |

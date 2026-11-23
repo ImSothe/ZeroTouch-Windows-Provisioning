@@ -47,6 +47,20 @@ function New-ZTSamplePrinter {
     }
 }
 
+function New-ZTSampleDriver {
+    param([string]$Name, [string]$Kind, [string]$Source)
+    [pscustomobject]@{
+        Name           = $Name
+        Kind           = $Kind
+        Source         = $Source
+        Status         = 'Installed'
+        RebootRequired = $false
+        Message        = 'driver.installed'
+        Arguments      = @($Source)
+        Detail         = Format-ZTMessage -Key 'driver.installed' -Arguments @($Source)
+    }
+}
+
 function New-ZTSampleRun {
     param([ValidateSet('en', 'es')][string]$Language = 'en')
     # Accented characters are built from code points: source files stay ASCII (see src\Common.ps1).
@@ -104,6 +118,10 @@ function New-ZTSampleRun {
             LoggedOnUser    = ''
             CollectedAt     = '2026-11-23T09:41:52'
         }
+        Drivers       = @(
+            (New-ZTSampleDriver -Name 'LENOVO ThinkCentre M70q Gen 3' -Kind 'Model' -Source '\\srv-files\drivers\Models\LENOVO\ThinkCentre M70q Gen 3'),
+            (New-ZTSampleDriver -Name 'Zebra ZD421 (etiquetas)' -Kind 'Peripheral' -Source '\\srv-files\drivers\Perifericos\zebra-zd421')
+        )
         Applications  = @(
             (New-ZTSampleApp -Id '7zip.7zip' -Name '7-Zip' -Status 'AlreadyInstalled' -Version '24.08' -Message 'app.alreadyInstalled'),
             (New-ZTSampleApp -Id 'Google.Chrome' -Name 'Google Chrome' -Status 'Installed' -Version '131.0.6778.86' -Message 'app.installed'),

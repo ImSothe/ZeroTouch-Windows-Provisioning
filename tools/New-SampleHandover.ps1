@@ -12,7 +12,7 @@ param()
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Path $PSScriptRoot -Parent
-foreach ($file in 'Common', 'Profile', 'Winget', 'Printers', 'Hardening', 'Device', 'Handover', 'ProfileBuilder', 'Provision') {
+foreach ($file in 'Common', 'Profile', 'Drivers', 'Winget', 'Printers', 'Hardening', 'Device', 'Handover', 'ProfileBuilder', 'Provision') {
     . (Join-Path -Path $root -ChildPath ('src\{0}.ps1' -f $file))
 }
 . (Join-Path -Path $PSScriptRoot -ChildPath 'SampleRun.ps1')

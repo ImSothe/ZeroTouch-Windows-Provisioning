@@ -8,7 +8,9 @@
     -FromThisComputer  Run it on a reference PC that is already set up the way the department works.
                        It runs 'winget export' and turns the result into a profile, together with the
                        PC's network (TCP/IP) printers. Print server connections and USB printers are
-                       per user or per desk, so they are not taken.
+                       per user or per desk, so they are not taken. Add -ExportDrivers \\server\drivers to
+                       also export the PC's driver pack (Models\<make>\<model>) and its printers' drivers
+                       (Printers\<driver>), and to point the profile at them.
     -ExportFile        Convert an export taken earlier on the reference PC with: winget export -o taller.json
     -CsvPath           Build one profile per department from a list kept in Excel
                        (columns Departamento;Id;Nombre;Obligatoria - English headers work too).
@@ -30,6 +32,10 @@
 
 .PARAMETER PackageId
     One or more winget package ids (comma or space separated also works).
+
+.PARAMETER ExportDrivers
+    With -FromThisComputer: folder (usually a share) where this PC's driver pack and its printers' driver
+    packages are exported. The profile gets drivers.packs and each printer's driverInf filled in.
 
 .PARAMETER Name
     Department name, used as the file name (lower case letters, digits and dashes). Not used with -CsvPath.
@@ -63,6 +69,10 @@
     On the reference workshop PC: captures its applications into profiles\taller.json.
 
 .EXAMPLE
+    .\New-DepartmentProfile.ps1 -FromThisComputer -Name taller -ExportDrivers \\srv-files\drivers
+    Same, and also exports the PC's drivers (by make and model) and its printers' drivers to the share.
+
+.EXAMPLE
     winget export -o D:\taller-export.json
     .\New-DepartmentProfile.ps1 -ExportFile D:\taller-export.json -Name taller
     Export on the reference PC (from a USB stick, say), convert on the technician's PC.
@@ -86,6 +96,7 @@ param(
     [Parameter(Mandatory, ParameterSetName = 'ExportFile')]
     [Parameter(Mandatory, ParameterSetName = 'PackageId')]
     [string]$Name,
+    [Parameter(ParameterSetName = 'FromThisComputer')][string]$ExportDrivers,
     [string]$DisplayName,
     [string]$Description,
     [AllowEmptyString()][string]$Extends = 'base',
@@ -97,7 +108,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-foreach ($file in 'Common', 'Profile', 'Winget', 'Printers', 'Hardening', 'Device', 'Handover', 'ProfileBuilder', 'Provision') {
+foreach ($file in 'Common', 'Profile', 'Drivers', 'Winget', 'Printers', 'Hardening', 'Device', 'Handover', 'ProfileBuilder', 'Provision') {
     . (Join-Path -Path $PSScriptRoot -ChildPath ('src\{0}.ps1' -f $file))
 }
 
@@ -121,6 +132,7 @@ foreach ($result in $results) {
     if (-not $result.Written) { $state = 'NOT written' }
     Write-ZTLog ('{0}: {1} ({2})' -f $result.Name, $result.Path, $state) -Level Step
     Write-ZTLog ('  {0} application(s): {1}' -f $result.Applications.Count, ($result.Applications -join ', '))
+    if ($result.DriverPack) { Write-ZTLog ('  driver pack: {0} driver(s) ({1}) in {2}' -f $result.DriverPack.Count, $result.DriverPack.Classes, $result.DriverPack.Path) }
     if ($result.Printers.Count -gt 0) { Write-ZTLog ('  {0} network printer(s): {1}' -f $result.Printers.Count, ($result.Printers -join ', ')) }
     if ($result.Inherited.Count -gt 0) { Write-ZTLog ('  already in {0}: {1}' -f $Extends, ($result.Inherited -join ', ')) }
     if ($result.Excluded.Count -gt 0) { Write-ZTLog ('  left out by -ExcludePattern: {0}' -f ($result.Excluded -join ', ')) }

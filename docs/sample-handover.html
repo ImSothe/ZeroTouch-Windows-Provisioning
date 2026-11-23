@@ -43,6 +43,7 @@
   .pill.warn { background: var(--warn-bg); color: var(--warn); }
   .pill.fail { background: var(--fail-bg); color: var(--fail); }
   .pill.sim { background: var(--sim-bg); color: var(--sim); }
+  .pill.muted { background: var(--panel); color: var(--muted); }
   .tag { font-size: 10px; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; margin-left: 4px; font-weight: 400; }
   ul.notes { margin: 0; padding-left: 18px; }
   ul.notes li { margin: 2px 0; }
@@ -84,7 +85,7 @@
   </div>
 </header>
 
-<div class="status warn"><strong>COMPLIANT WITH NOTES</strong><span>Applications: 7 (installed: 5, already present: 1, failed: 1) &middot; Printers: 1 (added: 1, already present: 0, failed: 0) &middot; Security controls: 5 (compliant: 1, fixed: 4, need attention: 0)</span></div>
+<div class="status warn"><strong>COMPLIANT WITH NOTES</strong><span>Applications: 7 (installed: 5, already present: 1, failed: 1) &middot; Drivers: 2 (added: 2, failed: 0, skipped: 0) &middot; Printers: 1 (added: 1, already present: 0, failed: 0) &middot; Security controls: 5 (compliant: 1, fixed: 4, need attention: 0)</span></div>
 <div class="notice">Restart the computer to finish applying some changes.</div>
 
 <h2>1. Assignment</h2>
@@ -149,7 +150,18 @@
 </table>
 </div>
 
-<h2>5. Printers</h2>
+<h2>5. Drivers</h2>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Driver</th><th>Type</th><th>Status</th><th>Detail</th></tr></thead>
+  <tbody>
+    <tr><td>LENOVO ThinkCentre M70q Gen 3</td><td>Model pack</td><td><span class="pill ok">Added</span></td><td class="detail">Added to the Windows driver store from \\srv-files\drivers\Models\LENOVO\ThinkCentre M70q Gen 3.</td></tr>
+    <tr><td>Zebra ZD421 (etiquetas)</td><td>Peripheral</td><td><span class="pill ok">Added</span></td><td class="detail">Added to the Windows driver store from \\srv-files\drivers\Perifericos\zebra-zd421.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2>6. Printers</h2>
 <div class="table-wrap">
 <table>
   <thead><tr><th>Printer</th><th>Address</th><th>Driver</th><th>Status</th><th>Detail</th></tr></thead>
@@ -159,13 +171,13 @@
 </table>
 </div>
 
-<h2>6. Notes</h2>
+<h2>7. Notes</h2>
 <ul class="notes">
   <li>LibreCAD: The download failed; check internet access or the proxy (0x8A150008).</li>
   <li>Technician notes: Delivered with keyboard, 24-inch monitor and network cable.</li>
 </ul>
 
-<h2>7. Acceptance</h2>
+<h2>8. Acceptance</h2>
 <p class="terms">The person signing below confirms receipt from Demo Corp S.L. of the computer described above, in working order and with the software listed, and agrees to use it in line with the company&#39;s acceptable use policy. Report any problem to IT helpdesk (ext. 200).</p>
 <div class="signatures">
   <div class="sign"><strong>Delivered by (IT)</strong><span class="who">Sothe</span><div class="line">Signature and date</div></div>

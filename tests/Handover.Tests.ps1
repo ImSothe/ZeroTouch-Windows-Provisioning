@@ -23,7 +23,7 @@ Test-Case 'Handover form (en): every placeholder is filled and the page is self-
 Test-Case 'Handover form (en): outcome, summary, optional tag, notes and restart notice' {
     $html = Get-SampleHtml
     Assert-True ($html.Contains('<div class="status warn"><strong>COMPLIANT WITH NOTES</strong>')) 'outcome banner'
-    Assert-True ($html.Contains('Applications: 7 (installed: 5, already present: 1, failed: 1) &middot; Printers: 1 (added: 1, already present: 0, failed: 0) &middot; Security controls: 5 (compliant: 1, fixed: 4, need attention: 0)')) 'summary'
+    Assert-True ($html.Contains('Applications: 7 (installed: 5, already present: 1, failed: 1) &middot; Drivers: 2 (added: 2, failed: 0, skipped: 0) &middot; Printers: 1 (added: 1, already present: 0, failed: 0) &middot; Security controls: 5 (compliant: 1, fixed: 4, need attention: 0)')) 'summary'
     Assert-True ($html.Contains('LibreCAD<span class="tag">optional</span>')) 'optional application tagged'
     Assert-True ($html.Contains('<li>LibreCAD: The download failed; check internet access or the proxy (0x8A150008).</li>')) 'failed application in the notes'
     Assert-True ($html.Contains('<li>Technician notes: Delivered with keyboard, 24-inch monitor and network cable.</li>')) 'technician notes'
@@ -31,6 +31,18 @@ Test-Case 'Handover form (en): outcome, summary, optional tag, notes and restart
     Assert-True ($html.Contains('<span class="pill ok">Fixed</span>')) 'remediated badge'
     Assert-True ($html.Contains('<span class="pill fail">Error</span>')) 'failed badge'
     Assert-True ($html.Contains('<tr><td>Taller - Impresora de planta</td><td class="mono">192.168.50.20</td><td>HP Universal Printing PCL 6</td>')) 'printer row'
+    Assert-True ($html.Contains('<tr><td>Zebra ZD421 (etiquetas)</td><td>Peripheral</td><td><span class="pill ok">Added</span></td>')) 'driver row'
+}
+
+Test-Case 'Handover form: a model without driver pack is shown in grey, not as a problem' {
+    $html = Get-SampleHtml -Change {
+        param($run)
+        $run.Drivers[0].Status = 'Skipped'
+        $run.Drivers[0].Message = 'driver.noPack'
+        $run.Drivers[0].Arguments = @('\\srv-files\drivers\Models\LENOVO\X')
+    }
+    Assert-True ($html.Contains('<span class="pill muted">Skipped</span>')) 'muted badge'
+    Assert-True (-not $html.Contains('<li>LENOVO ThinkCentre M70q Gen 3')) 'not listed in the notes'
 }
 
 Test-Case 'Handover form: a printer that could not be added is a note' {
@@ -76,10 +88,11 @@ Test-Case 'Handover form: a clean run has no notes and no restart notice' {
 }
 
 Test-Case 'Handover form: empty names leave room to write by hand, skipped sections say so' {
-    $html = Get-SampleHtml -Change { param($run) $run.AssignedUser = ''; $run.Applications = @(); $run.Security = @(); $run.Printers = @() }
+    $html = Get-SampleHtml -Change { param($run) $run.AssignedUser = ''; $run.Applications = @(); $run.Security = @(); $run.Printers = @(); $run.Drivers = @() }
     Assert-True ($html.Contains('<dt>Received by</dt><dd class="fill"></dd>')) 'blank line for the receiver'
     Assert-Equal 2 ([regex]::Matches($html, 'Not run in this provisioning')).Count 'both tables'
     Assert-True ($html.Contains('<td colspan="5" class="detail">No printers were set up.</td>')) 'printers table'
+    Assert-True ($html.Contains('<td colspan="4" class="detail">No drivers were added.</td>')) 'drivers table'
     Assert-True ($html.Contains('Nothing was provisioned.')) 'summary'
 }
 

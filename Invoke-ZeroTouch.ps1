@@ -4,6 +4,8 @@
 
 .DESCRIPTION
     1. Loads the department profile (profiles\<department>.json), including what it inherits from base.json.
+       Adds the drivers first: the pack for this exact PC model, if there is one, and the department's
+       peripheral drivers (label printers, docks, touch screens...) so they work as soon as they are plugged in.
     2. Installs the profile's applications silently with winget. Already installed apps are left alone.
        Adds the department's network printers (driver, TCP/IP port and queue, for the whole machine).
     3. Applies the security baseline: BitLocker check (or enablement with the recovery key escrowed first),
@@ -34,6 +36,9 @@
 
 .PARAMETER Notes
     Free text added to the "Notes" section of the handover form (accessories delivered, damage...).
+
+.PARAMETER SkipDrivers
+    Do not add the profile's driver packs (model pack and peripheral drivers).
 
 .PARAMETER SkipApplications
     Do not install applications (security baseline and handover form only).
@@ -79,6 +84,7 @@ param(
     [string]$ProfilesPath,
     [Parameter(ParameterSetName = 'Run')][ValidateSet('en', 'es')][string]$Language,
     [Parameter(ParameterSetName = 'Run')][string]$Notes,
+    [Parameter(ParameterSetName = 'Run')][switch]$SkipDrivers,
     [Parameter(ParameterSetName = 'Run')][switch]$SkipApplications,
     [Parameter(ParameterSetName = 'Run')][switch]$SkipPrinters,
     [Parameter(ParameterSetName = 'Run')][switch]$SkipSecurity,
@@ -109,7 +115,7 @@ if ([Environment]::Is64BitOperatingSystem -and -not [Environment]::Is64BitProces
     }
 }
 
-foreach ($file in 'Common', 'Profile', 'Winget', 'Printers', 'Hardening', 'Device', 'Handover', 'ProfileBuilder', 'Provision') {
+foreach ($file in 'Common', 'Profile', 'Drivers', 'Winget', 'Printers', 'Hardening', 'Device', 'Handover', 'ProfileBuilder', 'Provision') {
     . (Join-Path -Path $PSScriptRoot -ChildPath ('src\{0}.ps1' -f $file))
 }
 
@@ -158,7 +164,7 @@ foreach ($name in 'AssignedUser', 'Technician', 'OutputPath', 'ProfilesPath', 'L
     $value = Get-Variable -Name $name -ValueOnly
     if ($value) { $parameters[$name] = $value }
 }
-foreach ($name in 'SkipApplications', 'SkipPrinters', 'SkipSecurity', 'Pdf') {
+foreach ($name in 'SkipDrivers', 'SkipApplications', 'SkipPrinters', 'SkipSecurity', 'Pdf') {
     if ((Get-Variable -Name $name -ValueOnly).IsPresent) { $parameters[$name] = $true }
 }
 

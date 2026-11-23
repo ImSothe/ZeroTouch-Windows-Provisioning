@@ -49,7 +49,19 @@ taller: ...\profiles\taller.json (written)
 ```
 
 Printers shared from a print server (`\\server\queue`) are per-user connections, and USB or WSD
-printers belong to one desk, so they are not taken; the script says so for each one. Add the
+printers belong to one desk, so they are not taken; the script says so for each one.
+
+Add `-ExportDrivers` to take the drivers too:
+
+```powershell
+.\New-DepartmentProfile.ps1 -FromThisComputer -Name taller -ExportDrivers \\srv-files\drivers
+```
+
+- `\\srv-files\drivers\Models\<make>\<model>`: every third-party driver of this PC (the **model pack**).
+  Only PCs of that exact make and model will ever use it.
+- `\\srv-files\drivers\Printers\<driver>`: the driver package of each captured printer, and the
+  profile's `driverInf` points to it. Drivers that ship with Windows are not copied.
+- The profile gets `"drivers": { "packs": "\\\\srv-files\\drivers\\Models" }`. Add the
 driver package path (`driverInf`) by hand if the driver is not part of Windows (see *Printers* below).
 
 `winget export` only lists applications that winget can match to a package in its catalog. Anything
@@ -172,6 +184,7 @@ winget show --id SumatraPDF.SumatraPDF  # check one
 | `applications` | `"7zip.7zip"` or `{ "id", "name", "scope", "version", "source", "override", "custom", "required" }`. |
 | `removeApplications` | Inherited apps this department must not get. |
 | `printers` | Network printers: `{ "name", "address", "driver", "driverInf", "port", "location", "comment" }`. |
+| `drivers` | `packs`: root of the per-model driver packs. `peripherals`: the department's peripheral drivers, `{ "name", "path" }`. |
 | `security` | `bitlocker`, `disableSmb1`, `firewall`, `removeBloatware`. See the README. |
 
 **Inheritance rules.** Values set by the child win. Objects merge key by key. Lists are added
@@ -200,6 +213,29 @@ for one department). To turn a parent setting off, set it to `false` (`"bitlocke
 
 If the driver is neither installed nor in `driverInf`, the printer is not added and the form says
 which driver is missing. Drivers that already ship with Windows need no package. Under Intune, the computer account (SYSTEM) must be able to read the share.
+
+## Drivers
+
+```json
+"drivers": {
+  "packs": "\\\\srv-files\\drivers\\Models",
+  "peripherals": [
+    { "name": "Zebra ZD421 (etiquetas)", "path": "\\\\srv-files\\drivers\\Perifericos\\zebra-zd421" },
+    { "name": "DisplayLink (docks USB-C y pantallas externas)", "path": "\\\\srv-files\\drivers\\Perifericos\\displaylink" }
+  ]
+}
+```
+
+- **`packs`** belongs in `base.json`: it is the same for the whole company. Each PC looks for
+  `<packs>\<make>\<model>` with its own make and model (as the handover form shows them, for example
+  `LENOVO\ThinkCentre M70q Gen 3`). No folder for the model: nothing is applied, and the form says so.
+- **`peripherals`** belongs in the department that uses the device. `path` is a folder (searched
+  recursively for `.inf` files) or one `.inf` file. Get a peripheral's driver package from the maker's
+  website (the "INF" or "driver only" download, not the setup program), or export it from a PC where
+  it works: `pnputil /enum-drivers` shows its `oemNN.inf`, and `pnputil /export-driver oemNN.inf D:\zebra`
+  copies it.
+- Everything is added with `pnputil /add-driver /install`: only signed drivers are accepted, and a
+  driver that is already in the store is not a problem, so running ZeroTouch twice is safe.
 
 ## Default exclusions
 

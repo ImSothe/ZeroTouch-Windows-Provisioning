@@ -47,7 +47,6 @@ function Get-ZTChassisType {
 #>
 function Get-ZTDeviceInfo {
     $system = Get-ZTCim -ClassName 'Win32_ComputerSystem' | Select-Object -First 1
-    $product = Get-ZTCim -ClassName 'Win32_ComputerSystemProduct' | Select-Object -First 1
     $bios = Get-ZTCim -ClassName 'Win32_BIOS' | Select-Object -First 1
     $enclosure = Get-ZTCim -ClassName 'Win32_SystemEnclosure' | Select-Object -First 1
     $cpu = Get-ZTCim -ClassName 'Win32_Processor' | Select-Object -First 1
@@ -58,14 +57,9 @@ function Get-ZTDeviceInfo {
     $adapters = Get-ZTCim -ClassName 'Win32_NetworkAdapterConfiguration' | Where-Object { $_.IPEnabled }
     $adapter = @($adapters | Where-Object { $_.DefaultIPGateway }) + @($adapters) | Select-Object -First 1
 
-    $manufacturer = ''
-    $model = ''
-    if ($system) {
-        $manufacturer = ([string]$system.Manufacturer).Trim()
-        $model = ([string]$system.Model).Trim()
-    }
-    # Lenovo reports the machine type (11DT0040SP) as the model; the friendly name is in Version.
-    if ($manufacturer -match '^LENOVO' -and $product -and ([string]$product.Version).Trim()) { $model = ([string]$product.Version).Trim() }
+    $identity = Get-ZTDeviceModel
+    $manufacturer = $identity.Manufacturer
+    $model = $identity.Model
 
     $computerName = ''
     if ($system -and $system.Name) { $computerName = [string]$system.Name } else { $computerName = [string]$env:COMPUTERNAME }

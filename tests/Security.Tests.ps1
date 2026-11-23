@@ -42,6 +42,12 @@ Test-Case 'XSS: hostile text in every field of the run is shown as text' {
         $app.Arguments = @($payload, $payload, $payload)
     }
     foreach ($result in $run.Security) { $result.Arguments = @($payload, $payload, $payload, $payload) }
+    foreach ($driver in $run.Drivers) {
+        $driver.Name = $payload
+        $driver.Kind = $payload
+        $driver.Source = $payload
+        $driver.Arguments = @($payload, $payload)
+    }
     foreach ($printer in $run.Printers) {
         $printer.Name = $payload
         $printer.Address = $payload
@@ -149,7 +155,7 @@ Test-Case 'The tests never run a real system command: everything the source call
     $faked = @($mockAst.FindAll({ param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] }, $false) | ForEach-Object { $_.Name })
     $harmless = @('ForEach-Object', 'Where-Object', 'Select-Object', 'Sort-Object', 'Join-Path', 'Split-Path', 'Test-Path', 'Get-Date',
         'Write-Host', 'Write-Verbose', 'Write-Warning', 'ConvertFrom-Json', 'ConvertTo-Json', 'ConvertFrom-Csv', 'Out-Null', 'Add-Member',
-        'Get-ChildItem', 'Get-Command', 'Start-Sleep', 'New-Object', 'Import-Module')
+        'Get-ChildItem', 'Get-Command', 'Start-Sleep', 'New-Object', 'Import-Module', 'Copy-Item')
     $defined = New-Object -TypeName System.Collections.Generic.List[object]
     foreach ($file in $sourceFiles) {
         $ast = [System.Management.Automation.Language.Parser]::ParseFile($file.FullName, [ref]$null, [ref]$null)
@@ -166,7 +172,7 @@ Test-Case 'The tests never run a real system command: everything the source call
         }
     }
     Assert-True ($checked -gt 40) ('only {0} functions checked' -f $checked)
-    foreach ($probe in 'Invoke-ZTWinget', 'Resolve-ZTWingetPath', 'Set-ZTRegistryMarker', 'Get-ZTJoinState', 'ConvertTo-ZTPdf', 'Test-ZTIsAdmin', 'Invoke-ZTPnpUtil') {
+    foreach ($probe in 'Invoke-ZTWinget', 'Resolve-ZTWingetPath', 'Set-ZTRegistryMarker', 'Get-ZTJoinState', 'ConvertTo-ZTPdf', 'Test-ZTIsAdmin', 'Invoke-ZTPnpUtil', 'Test-ZTDriverSource', 'Invoke-ZTDriverInstall') {
         Assert-Contains $faked $probe 'system probes faked'
     }
 }

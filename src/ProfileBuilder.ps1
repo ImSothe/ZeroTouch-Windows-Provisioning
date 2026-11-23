@@ -162,6 +162,7 @@ function Write-ZTProfileFile {
         [string]$Extends,
         [object[]]$Applications = @(),
         [object[]]$Printers = @(),
+        [AllowNull()]$Drivers,
         [Parameter(Mandatory)][string]$OutputDirectory,
         [switch]$Force
     )
@@ -176,6 +177,7 @@ function Write-ZTProfileFile {
     if ($Extends) { $document['extends'] = $Extends }
     $document['applications'] = @($Applications)
     if (@($Printers).Count -gt 0) { $document['printers'] = @($Printers) }
+    if ($null -ne $Drivers) { $document['drivers'] = $Drivers }
     if (-not $PSCmdlet.ShouldProcess($path, 'Write department profile')) {
         return [pscustomobject]@{ Path = $path; Written = $false }
     }
@@ -188,7 +190,8 @@ function Write-ZTProfileFile {
     Creates department profiles (profiles\<name>.json) without writing JSON by hand.
 .DESCRIPTION
     FromThisComputer  runs 'winget export' on a reference PC that is already set up the way the department works,
-                      and also takes its network (TCP/IP) printers.
+                      and also takes its network (TCP/IP) printers. With -ExportDrivers it also exports
+                      the PC's driver pack (by make and model) and its printers' driver packages.
     ExportFile        converts an export taken earlier on the reference PC ('winget export -o file.json').
     Csv               builds one profile per department from a list (Departamento;Id;Nombre;Obligatoria).
     PackageId         builds a profile from a list of winget ids.
@@ -206,6 +209,7 @@ function New-ZTDepartmentProfile {
         [Parameter(Mandatory, ParameterSetName = 'ExportFile')]
         [Parameter(Mandatory, ParameterSetName = 'PackageId')]
         [string]$Name,
+        [Parameter(ParameterSetName = 'FromThisComputer')][string]$ExportDrivers,
         [string]$DisplayName,
         [string]$Description,
         [AllowEmptyString()][string]$Extends = 'base',
@@ -234,6 +238,7 @@ function New-ZTDepartmentProfile {
     }
 
     $sets = New-Object -TypeName System.Collections.Generic.List[object]
+    $driverPack = $null
     switch ($PSCmdlet.ParameterSetName) {
         'Csv' {
             foreach ($department in @(Read-ZTDepartmentCsv -Path $CsvPath)) { $sets.Add($department) }
@@ -259,7 +264,24 @@ function New-ZTDepartmentProfile {
                 if (Test-Path -LiteralPath $exportPath) { [System.IO.File]::Delete($exportPath) }
             }
             $printers = @(Get-ZTNetworkPrinter)
-            $sets.Add([pscustomobject]@{ Name = $Name; DisplayName = $DisplayName; Applications = $apps; Printers = $printers })
+            $driverSettings = $null
+            if ($ExportDrivers) {
+                if ($ExportDrivers -notmatch $script:ZTDriverPathPattern) { throw ("-ExportDrivers must be a full path (C:\... or \\server\share\...): '{0}'." -f $ExportDrivers) }
+                $packRoot = Join-Path -Path $ExportDrivers -ChildPath 'Models'
+                $driverPack = Export-ZTDriverPack -Root $packRoot
+                Write-ZTLog ('Driver pack for {0} {1}: {2} driver(s) in {3}' -f $driverPack.Manufacturer, $driverPack.Model, $driverPack.Count, $driverPack.Path)
+                $withDrivers = New-Object -TypeName System.Collections.Generic.List[object]
+                foreach ($printer in $printers) {
+                    $copy = [ordered]@{}
+                    foreach ($key in @($printer.Keys)) { $copy[$key] = $printer[$key] }
+                    $inf = Export-ZTPrinterDriver -DriverName ([string]$copy['driver']) -Root $ExportDrivers
+                    if ($inf) { $copy['driverInf'] = $inf }
+                    $withDrivers.Add($copy)
+                }
+                $printers = $withDrivers.ToArray()
+                $driverSettings = [ordered]@{ packs = $packRoot }
+            }
+            $sets.Add([pscustomobject]@{ Name = $Name; DisplayName = $DisplayName; Applications = $apps; Printers = $printers; Drivers = $driverSettings })
         }
     }
 
@@ -271,14 +293,17 @@ function New-ZTDepartmentProfile {
         $printers = @(@($set.Printers) | Where-Object { $_ -and -not $inheritedPrinters.ContainsKey(([string]$_['name']).ToLowerInvariant()) })
         $display = [string]$set.DisplayName
         if (-not $display) { $display = [string]$set.Name }
+        $driverSettings = $null
+        if ($set.PSObject.Properties.Name -contains 'Drivers') { $driverSettings = $set.Drivers }
         $written = Write-ZTProfileFile -Name $profileName -DisplayName $display -Description $Description -Extends $Extends `
-            -Applications $selection.Applications -Printers $printers -OutputDirectory $OutputDirectory -Force:$Force
+            -Applications $selection.Applications -Printers $printers -Drivers $driverSettings -OutputDirectory $OutputDirectory -Force:$Force
         [pscustomobject]@{
             Name         = $profileName
             Path         = $written.Path
             Written      = $written.Written
             Applications = @($selection.Applications | ForEach-Object { [string]$_['id'] })
             Printers     = @($printers | ForEach-Object { [string]$_['name'] })
+            DriverPack   = $driverPack
             Inherited    = $selection.Inherited
             Excluded     = $selection.Excluded
         }

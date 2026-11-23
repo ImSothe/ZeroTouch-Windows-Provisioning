@@ -87,6 +87,7 @@ Test-Case 'A healthy PC with everything installed is simply compliant' {
     }
     foreach ($rule in 'ZT - Block inbound SMB on public networks', 'ZT - Block inbound RDP on public networks') { $script:Fake.Firewall.Rules.Add($rule) }
     Add-FakePrinter -Name ([string]@((Get-ZTProfile -Name 'oficina' -ProfilesPath $RepoProfiles)['printers'])[0]['name'])
+    $script:Fake.Drivers.Available.Add('\\srv-files\drivers\Models')
     $run = Invoke-TestProvisioning
     Assert-Equal 'Success' $run.Outcome.Status 'outcome'
     Assert-Equal 0 $run.ExitCode 'exit code'
@@ -142,6 +143,7 @@ Test-Case 'The JSON twin is plain data (no PowerShell type noise) and matches th
     Assert-Equal 7 @($json.Applications).Count 'applications'
     Assert-Equal 5 @($json.Security).Count 'security results'
     Assert-Equal 1 @($json.Printers).Count 'printers'
+    Assert-Equal 1 @($json.Drivers).Count 'drivers (base model packs)'
     Assert-Equal 'smb1.disabled' (@($json.Security) | Where-Object { $_.Control -eq 'SMBv1' }).Message 'message keys kept for re-rendering'
 }
 

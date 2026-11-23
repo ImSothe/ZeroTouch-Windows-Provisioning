@@ -43,6 +43,7 @@
   .pill.warn { background: var(--warn-bg); color: var(--warn); }
   .pill.fail { background: var(--fail-bg); color: var(--fail); }
   .pill.sim { background: var(--sim-bg); color: var(--sim); }
+  .pill.muted { background: var(--panel); color: var(--muted); }
   .tag { font-size: 10px; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; margin-left: 4px; font-weight: 400; }
   ul.notes { margin: 0; padding-left: 18px; }
   ul.notes li { margin: 2px 0; }
@@ -135,6 +136,16 @@
   <thead><tr><th>{{t:col.application}}</th><th>{{t:col.id}}</th><th>{{t:col.version}}</th><th>{{t:col.status}}</th><th>{{t:col.detail}}</th></tr></thead>
   <tbody>
 {{APPLICATION_ROWS}}
+  </tbody>
+</table>
+</div>
+
+<h2>{{t:section.drivers}}</h2>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>{{t:col.driver}}</th><th>{{t:col.type}}</th><th>{{t:col.status}}</th><th>{{t:col.detail}}</th></tr></thead>
+  <tbody>
+{{DRIVER_ROWS}}
   </tbody>
 </table>
 </div>

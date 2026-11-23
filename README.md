@@ -4,14 +4,15 @@
 ![PowerShell 5.1 | 7](https://img.shields.io/badge/PowerShell-5.1%20%7C%207-5391FE?logo=powershell&logoColor=white)
 ![Windows 10 | 11](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows&logoColor=white)
 ![winget](https://img.shields.io/badge/apps-winget-0078D4)
-![Tests](https://img.shields.io/badge/tests-136%20passing-success)
+![Tests](https://img.shields.io/badge/tests-150%20passing-success)
 ![PSScriptAnalyzer](https://img.shields.io/badge/PSScriptAnalyzer-security%20rules%20clean-success)
 ![Intune ready](https://img.shields.io/badge/Intune-Win32%20app%20ready-2e7d32)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 Sets up a new Windows PC for its department in one command. It reads the department's profile (a
-JSON file such as `oficina.json` or `taller.json`), **installs the department's applications
-silently with winget**, adds its **network printers**, applies a **security baseline** (BitLocker, SMBv1, Windows Firewall,
+JSON file such as `oficina.json` or `taller.json`), adds the **drivers** its model and the
+department's peripherals need, **installs the department's applications silently with winget**,
+adds its **network printers**, applies a **security baseline** (BitLocker, SMBv1, Windows Firewall,
 preinstalled consumer apps) and writes a **handover form** ("acta de entrega") with the computer's
 details, ready to print and sign.
 
@@ -56,15 +57,16 @@ So the goals were:
 | Step | Detail |
 |---|---|
 | **1. Profile** | Loads `profiles\<department>.json` and everything it inherits (`taller` → `base`), then validates it. A typo fails here, before anything changes. |
-| **2. Applications** | For each app: `winget list` to see if it is there, else `winget install --exact --silent` with the agreements accepted. Retries transient errors (app in use, another install running, network), explains the rest, detects "restart required". Works as SYSTEM, where winget is not on the PATH. |
-| **3. Printers** | Adds the department's network printers for the whole machine: driver (staging the vendor's `.inf` with `pnputil` if needed), TCP/IP port and queue. Existing printers are left alone. |
-| **4. Security baseline** | BitLocker, SMBv1, firewall profiles and rules, preinstalled apps. See [Security baseline](#security-baseline). |
-| **5. Inventory** | Make, model, serial number, CPU, RAM, disk, Windows version and build, IP/MAC, Entra ID / AD join, TPM, Secure Boot, antivirus. |
-| **6. Handover form** | `Reports\<form id>.html` (print and sign), `.json` (for GLPI or any inventory), optional `.pdf` (Edge, headless). English or Spanish. |
-| **7. Marker** | `HKLM:\SOFTWARE\ZeroTouch` with profile, result and form path: the Intune detection rule. |
+| **2. Drivers** | First, because without its network driver a PC cannot download anything: the driver pack for this exact make and model, if the company has one, and the department's peripheral drivers (label printers, docks, touch screens...), added to the Windows driver store so they install by themselves when plugged in. |
+| **3. Applications** | For each app: `winget list` to see if it is there, else `winget install --exact --silent` with the agreements accepted. Retries transient errors (app in use, another install running, network), explains the rest, detects "restart required". Works as SYSTEM, where winget is not on the PATH. |
+| **4. Printers** | Adds the department's network printers for the whole machine: driver (staging the vendor's `.inf` with `pnputil` if needed), TCP/IP port and queue. Existing printers are left alone. |
+| **5. Security baseline** | BitLocker, SMBv1, firewall profiles and rules, preinstalled apps. See [Security baseline](#security-baseline). |
+| **6. Inventory** | Make, model, serial number, CPU, RAM, disk, Windows version and build, IP/MAC, Entra ID / AD join, TPM, Secure Boot, antivirus. |
+| **7. Handover form** | `Reports\<form id>.html` (print and sign), `.json` (for GLPI or any inventory), optional `.pdf` (Edge, headless). English or Spanish. |
+| **8. Marker** | `HKLM:\SOFTWARE\ZeroTouch` with profile, result and form path: the Intune detection rule. |
 
 Exit codes: `0` success · `3010` success, restart needed · `1` failed (a required app or a control failed).
-A printer that cannot be added is a note on the form, not a failure: retrying would not fix a missing driver.
+A printer or driver package that cannot be added is a note on the form, not a failure: retrying would not fix a missing driver or an unreachable share.
 
 ## Quick start
 
@@ -93,7 +95,7 @@ powershell.exe -ExecutionPolicy Bypass -File .\Invoke-ZeroTouch.ps1 -Department 
 | `-OutputPath` | Logs and forms. Default `C:\ProgramData\ZeroTouch`; a share collects every form in one place. |
 | `-Language` | `en` or `es`. Default: the profile's `organization.language`. |
 | `-Notes` | Free text for the form: accessories delivered, scratches, pending items. |
-| `-SkipApplications`, `-SkipPrinters`, `-SkipSecurity` | Run only part of the provisioning. |
+| `-SkipDrivers`, `-SkipApplications`, `-SkipPrinters`, `-SkipSecurity` | Run only part of the provisioning. |
 | `-Pdf` | Also save the form as PDF (Microsoft Edge, headless). |
 | `-WhatIf` | Simulation. Nothing is installed, changed or removed; no registry marker. |
 
@@ -110,10 +112,10 @@ company, *Demo Corp S.L.*, which is why they have Spanish names and the form def
 
 | Profile | For | Inherits | Adds |
 |---|---|---|---|
-| [`base`](profiles/base.json) | Every PC (hidden from the menu) | | 7-Zip, Chrome, Acrobat Reader; the whole security baseline; company name and form language |
+| [`base`](profiles/base.json) | Every PC (hidden from the menu) | | 7-Zip, Chrome, Acrobat Reader; the share with the per-model driver packs; the whole security baseline; company name and form language |
 | [`oficina`](profiles/oficina.json) | Office staff | `base` | Microsoft 365 Apps, Teams, PDF24 and Greenshot (optional); the first-floor multifunction printer |
-| [`taller`](profiles/taller.json) | Shop floor | `base` | SumatraPDF instead of Acrobat, Notepad++ for CNC programs, WinSCP to send files to the machines, LibreOffice, LibreCAD; the shop floor printer, with its driver staged from a share; a firewall rule that only accepts DNC traffic from the machine network |
-| [`comercial`](profiles/comercial.json) | Sales laptops | `oficina` | Zoom; **BitLocker enforced**; SMB blocked on home networks too (the office printer comes from `oficina`) |
+| [`taller`](profiles/taller.json) | Shop floor | `base` | SumatraPDF instead of Acrobat, Notepad++ for CNC programs, WinSCP to send files to the machines, LibreOffice, LibreCAD; the Zebra label printer driver; the shop floor printer, with its driver staged from a share; a firewall rule that only accepts DNC traffic from the machine network |
+| [`comercial`](profiles/comercial.json) | Sales laptops | `oficina` | Zoom; the DisplayLink driver for USB-C docks and external displays; **BitLocker enforced**; SMB blocked on home networks too (the office printer comes from `oficina`) |
 
 ```json
 {
@@ -140,6 +142,8 @@ builds it four ways:
 ```powershell
 # A. On a reference PC already set up the way the department works: its apps and its network printers
 .\New-DepartmentProfile.ps1 -FromThisComputer -Name taller -DisplayName 'Taller'
+#    ...and also its drivers: the model's pack and the printers' drivers, exported to a share
+.\New-DepartmentProfile.ps1 -FromThisComputer -Name taller -ExportDrivers \\srv-files\drivers
 
 # B. From 'winget export -o taller.json' taken on that PC by anyone
 .\New-DepartmentProfile.ps1 -ExportFile .\taller.json -Name taller
@@ -177,6 +181,28 @@ Standard TCP/IP port and the queue, for every user of the PC. Capturing a refere
 | USB printer, WSD printer | No | It belongs to one desk, and WSD ports have no fixed address. Add it by IP instead. |
 | PDF, XPS, OneNote, Fax | No | Built into Windows. |
 | User files, browser and app settings | No | Not a department setting. That is OneDrive Known Folder Move or a migration tool such as USMT. |
+| Drivers | With `-ExportDrivers` | See below. |
+
+### Drivers
+
+Printers, label printers, displays and docks, touch screens, signature pads: many devices do not work,
+or work badly, without their own driver. ZeroTouch handles drivers in two ways, because they depend on
+two different things:
+
+| Kind | Depends on | In the profile | What ZeroTouch does |
+|---|---|---|---|
+| **Model pack** (chipset, graphics, network, Wi-Fi...) | The PC **model** | `"drivers": { "packs": "\\\\srv-files\\drivers\\Models" }`, usually in `base.json` | Looks for `<packs>\<make>\<model>` with this PC's exact make and model. If it exists, adds every driver in it; if not, skips it and says so (Windows Update or the maker's tool will do). It never applies another model's drivers. |
+| **Peripheral drivers** | The **department** | `"peripherals": [ { "name": "Zebra ZD421 (etiquetas)", "path": "\\\\srv-files\\drivers\\Perifericos\\zebra-zd421" } ]` | Adds the package to the Windows driver store, so the device installs by itself the moment someone plugs it in, even a user without administrator rights. |
+
+Drivers are added **before** the applications (a PC without its network driver cannot download any),
+with `pnputil`, which only accepts signed drivers. Capturing a reference PC with `-ExportDrivers`
+exports its model pack (`Models\<make>\<model>`) and its printers' driver packages (`Printers\<driver>`),
+and writes both into the profile. Drivers that ship with Windows are not copied.
+
+**When a model pack helps:** several PCs of the same model, PCs without internet, or a network card
+Windows has no driver for. **When it does not:** PCs with internet get newer drivers from Windows Update
+or the maker's tool (Lenovo System Update, Dell Command Update...), and a pack does not include BIOS or
+firmware updates.
 
 ## Security baseline
 
@@ -200,9 +226,10 @@ prints on A4:
    type (laptop/desktop/VM), BIOS, CPU, RAM, disk, Windows release and build, Entra ID/AD join, IP/MAC.
 3. **Security:** TPM, Secure Boot, antivirus, and the result of every baseline control.
 4. **Software:** each app with its winget id, installed version and result; optional apps tagged.
-5. **Printers:** each network printer with its address, driver and result.
-6. **Notes:** what failed or needs attention, plus the technician's notes.
-7. **Acceptance:** terms of use and signature boxes for both sides.
+5. **Drivers:** the model pack and each peripheral driver, with where it came from.
+6. **Printers:** each network printer with its address, driver and result.
+7. **Notes:** what failed or needs attention, plus the technician's notes.
+8. **Acceptance:** terms of use and signature boxes for both sides.
 
 The overall result is shown at the top: *compliant*, *compliant with notes*, *not compliant* or
 *simulation*, plus a restart notice when needed. The JSON twin has the same data plus message keys,
@@ -222,10 +249,10 @@ install trap, and how each part maps to native Intune policies:
 ## How it works
 
 ```
- profiles\*.json --> Get-ZTProfile --> Install-ZTApplication --> Install-ZTPrinter --> Invoke-ZTSecurityBaseline --> Get-ZTDeviceInfo
- (inheritance,       (merge +          (winget list/install,     (driver, TCP/IP      (BitLocker, SMBv1,             (CIM, read-only)
-  validation)         validate)          retries, exit codes)      port, queue)         firewall, bloatware)                |
-                                                                                                                             v
+ profiles\*.json --> Get-ZTProfile --> Invoke-ZTDrivers --> Install-ZTApplication --> Install-ZTPrinter --> Invoke-ZTSecurityBaseline --> Get-ZTDeviceInfo
+ (inheritance,       (merge +          (model pack,         (winget list/install,     (driver, TCP/IP      (BitLocker, SMBv1,             (CIM, read-only)
+  validation)         validate)          peripherals)         retries, exit codes)      port, queue)         firewall, bloatware)                |
+                                                                                                                                                  v
  HKLM:\SOFTWARE\ZeroTouch  <--  Invoke-ZTProvisioning (outcome, exit code)  -->  New-ZTHandoverReport
  (Intune detection)                                                               (HTML + JSON + PDF)
 ```
@@ -237,6 +264,7 @@ install trap, and how each part maps to native Intune policies:
 | [`Start-ZeroTouch.cmd`](Start-ZeroTouch.cmd) | Double-click launcher: elevation and menu. |
 | [`src/Profile.ps1`](src/Profile.ps1) | Loading, inheritance and validation of profiles. |
 | [`src/Winget.ps1`](src/Winget.ps1) | Finding winget (also as SYSTEM), idempotent installs, return codes. |
+| [`src/Drivers.ps1`](src/Drivers.ps1) | Model driver packs and peripheral drivers: install and export. |
 | [`src/Printers.ps1`](src/Printers.ps1) | Network printers: install and capture. |
 | [`src/Hardening.ps1`](src/Hardening.ps1) | The security baseline. |
 | [`src/Device.ps1`](src/Device.ps1) | Inventory. |
@@ -274,7 +302,7 @@ the PCs it protects.
 | **No changes in simulation** | Every change goes through `ShouldProcess`; files are written with .NET so logging still works under `-WhatIf`. | A full `-WhatIf` run of the `comercial` profile on a fresh fake PC records zero system changes. CI also runs `-WhatIf` on a real Windows runner. |
 | **No encryption without a stored key** | The recovery key is escrowed before `Enable-BitLocker`; if escrow fails, the new protector is removed and nothing is encrypted. | Escrow failure, workgroup PC and the call order (escrow before encryption) are tested. |
 | **The recovery password never leaks** | Never read into results; warnings from the BitLocker cmdlets are silenced. | The fake `Add-BitLockerKeyProtector` prints the password like the real one; the test checks the console, the log, the form and the JSON. |
-| **No command injection from profiles** | Package ids, versions, ports, addresses, printer names and driver paths are validated; winget and pnputil get argument arrays. | Ids with `;`, `&`, `|`, `$( )`, backticks, newlines and extra switches are refused by validation and by the installer; an `override` with quotes stays one argument. |
+| **No command injection from profiles** | Package ids, versions, ports, addresses, printer names and driver paths are validated (full paths only, no wildcards or quotes); winget and pnputil get argument arrays. | Ids with `;`, `&`, `|`, `$( )`, backticks, newlines and extra switches are refused by validation and by the installer; an `override` with quotes stays one argument. |
 | **No script injection in the form** | Every value is HTML-encoded; data is inserted after the labels in one pass, so data cannot become a placeholder; CSP `default-src 'none'`, no scripts. | An XSS payload in every field of the run, in both languages. |
 | **No path traversal** | Profile names, `extends` and computer names are restricted to safe characters before they become file names. | `..\`, `/`, drive paths and a hostile form id. |
 | **System packages are protected** | A fixed list (winget, Store, Windows Security, Entra ID broker, Company Portal, shell, runtimes) is refused by validation and skipped at run time. | Wildcards like `Microsoft.Windows*` and `*Store*`. |
@@ -284,9 +312,9 @@ the PCs it protects.
 
 ## Tested
 
-**136 automated tests**, no external dependencies (Pester is not needed). They run against a fake
+**150 automated tests**, no external dependencies (Pester is not needed). They run against a fake
 Windows ([`tests/WindowsMock.ps1`](tests/WindowsMock.ps1)): winget, BitLocker, TPM, SMB, firewall,
-Appx, printers and CIM are in-memory fakes with state, so a test can install, re-run and check that nothing
+Appx, printers, drivers and CIM are in-memory fakes with state, so a test can install, re-run and check that nothing
 changed the second time. CI runs them on Windows PowerShell 5.1 and PowerShell 7, then runs a real
 `-WhatIf` provisioning on the Windows runner and keeps its form as an artifact, and runs
 PSScriptAnalyzer.
@@ -302,11 +330,12 @@ powershell -ExecutionPolicy Bypass -File .\tests\Run-Tests.ps1 -Filter Hardening
 | [Profile.Tests.ps1](tests/Profile.Tests.ps1) | 15 | Inheritance (three levels, replace, remove, add up), cycles, missing parents, traversal, invalid JSON, typo warnings, every validation rule, the repository's own profiles. |
 | [Winget.Tests.ps1](tests/Winget.Tests.ps1) | 14 | Idempotency, exact argument arrays, retries and give-up, reboot and "already installed" codes, installer messages, `-WhatIf`, version parsing, progress-bar cleanup. |
 | [Common.Tests.ps1](tests/Common.Tests.ps1) | 12 | JSON on 5.1 and 7, merging, slugs, HTML encoding, messages, Spanish file parity, every message key used exists. |
+| [Drivers.Tests.ps1](tests/Drivers.Tests.ps1) | 13 | Model pack only for the exact model, other models skipped, unreachable shares, safe folder names, peripherals with restart codes and pnputil errors, `-WhatIf`, invalid paths, validation and inheritance, export of the model pack and printer drivers, capture with `-ExportDrivers`, drivers before winget. |
 | [Printers.Tests.ps1](tests/Printers.Tests.ps1) | 11 | Driver, port and queue; existing printers and ports reused; missing driver with and without `driverInf`; `-WhatIf`; invalid definitions; capture of TCP/IP printers only; validation and inheritance by name. |
 | [Provision.Tests.ps1](tests/Provision.Tests.ps1) | 12 | End to end on a fresh PC, second run changes nothing, `-WhatIf`, no admin, required vs optional failures, no winget, skips, exit codes for Intune. |
 | [ProfileBuilder.Tests.ps1](tests/ProfileBuilder.Tests.ps1) | 11 | Export conversion and filters, versions, Store apps, no overwrite, `-WhatIf`, capture of apps and printers from this PC, CSV in UTF-8 and ANSI, bad rows. |
 | [Security.Tests.ps1](tests/Security.Tests.ps1) | 11 | See [Security](#security). |
-| [Handover.Tests.ps1](tests/Handover.Tests.ps1) | 11 | Content, languages, outcomes, simulation, blanks for handwriting, files without BOM, PDF, and that the committed samples match the generator. |
+| [Handover.Tests.ps1](tests/Handover.Tests.ps1) | 12 | Content, languages, outcomes, simulation, blanks for handwriting, files without BOM, PDF, and that the committed samples match the generator. |
 | [Cli.Tests.ps1](tests/Cli.Tests.ps1) | 8 | The scripts in a child process, help for every parameter, clean parsing, ASCII sources, the launcher's CRLF. |
 | [Device.Tests.ps1](tests/Device.Tests.ps1) | 4 | Inventory fields, Lenovo model names, laptops, VMs, hybrid join, legacy BIOS, missing data. |
 
@@ -336,6 +365,8 @@ powershell -ExecutionPolicy Bypass -File .\tests\Run-Tests.ps1 -Filter Hardening
 | `winget (App Installer) was not found` | Fresh install where App Installer is not registered yet, or Windows LTSC/Server without it. Update App Installer from the Store, or sign in once and retry. |
 | `Run ZeroTouch as administrator` | Start it from an elevated prompt, with `Start-ZeroTouch.cmd`, or through Intune (SYSTEM). |
 | `Profile 'x' is not valid` | The message lists each problem (invalid id, port, action...). Fix the JSON; VS Code highlights it through the schema. |
+| Drivers: *cannot be reached from this computer* | The share or folder does not exist, or the account running ZeroTouch cannot read it. As SYSTEM (Intune) that is the computer account: give *Domain Computers* read access. |
+| Drivers: *No driver pack for this model* | Normal for models nobody exported. Export one from a PC of that model with `-ExportDrivers`, or let Windows Update / the maker's tool handle it. |
 | A printer fails with *driver is not in the Windows driver store* | Add `driverInf` (the vendor's `.inf` on a share the PC can read) or deploy the driver first. `Get-PrinterDriver` on a PC that has it shows the exact name to use. |
 | An app fails with *package not found* | The winget id changed or is misspelled: `winget search <name>`. |
 | BitLocker: *not encrypted, key could not be stored* | The PC is not joined to Entra ID/AD, or the domain does not allow BitLocker key backup. Join it, or use `Report` mode and Intune's disk encryption policy. |

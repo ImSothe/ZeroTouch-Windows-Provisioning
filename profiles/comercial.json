@@ -4,6 +4,11 @@
   "displayName": "Comercial (portátil)",
   "description": "Portátiles que salen de la oficina: lo mismo que Oficina, con el disco cifrado obligatoriamente.",
   "extends": "oficina",
+  "drivers": {
+    "peripherals": [
+      { "name": "DisplayLink (docks USB-C y pantallas externas)", "path": "\\\\srv-files\\drivers\\Perifericos\\displaylink" }
+    ]
+  },
   "applications": [
     { "id": "Zoom.Zoom", "name": "Zoom", "required": false }
   ],

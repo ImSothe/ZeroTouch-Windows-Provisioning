@@ -1,5 +1,5 @@
 #Requires -Version 5.1
-# End-to-end provisioning: profile -> applications -> printers -> security baseline -> inventory -> handover form.
+# End-to-end provisioning: profile -> drivers -> applications -> printers -> security baseline -> inventory -> handover form.
 
 $script:ZTRegistryKey = 'HKLM:\SOFTWARE\ZeroTouch'
 
@@ -7,18 +7,19 @@ $script:ZTRegistryKey = 'HKLM:\SOFTWARE\ZeroTouch'
 #   0     success
 #   3010  success, restart required (soft reboot)
 #   1     failure (a required application or a security control failed)
-# A printer that could not be added is a note on the form, not a failure: retrying would not fix a
-# missing driver.
+# A printer or driver package that could not be added is a note on the form, not a failure:
+# retrying would not fix a missing driver or an unreachable share.
 function Get-ZTOutcome {
-    param([object[]]$Applications = @(), [object[]]$Security = @(), [object[]]$Printers = @(), [switch]$Simulation)
+    param([object[]]$Applications = @(), [object[]]$Security = @(), [object[]]$Printers = @(), [object[]]$Drivers = @(), [switch]$Simulation)
     $apps = @($Applications | Where-Object { $null -ne $_ })
     $controls = @($Security | Where-Object { $null -ne $_ })
     $queues = @($Printers | Where-Object { $null -ne $_ })
-    $reboot = @(@($apps) + @($controls) | Where-Object { $_.RebootRequired }).Count -gt 0
+    $packages = @($Drivers | Where-Object { $null -ne $_ })
+    $reboot = @(@($apps) + @($controls) + @($packages) | Where-Object { $_.RebootRequired }).Count -gt 0
     $failedRequired = @($apps | Where-Object { $_.Status -eq 'Failed' -and $_.Required }).Count
     $failedOptional = @($apps | Where-Object { $_.Status -eq 'Failed' -and -not $_.Required }).Count
     $failedControls = @($controls | Where-Object { $_.Status -eq 'Failed' }).Count
-    $attention = @($controls | Where-Object { $_.Status -eq 'NonCompliant' }).Count + @($queues | Where-Object { $_.Status -eq 'Failed' }).Count
+    $attention = @($controls | Where-Object { $_.Status -eq 'NonCompliant' }).Count + @(@($queues) + @($packages) | Where-Object { $_.Status -eq 'Failed' }).Count
 
     if ($Simulation) { $status = 'Simulation'; $exitCode = 0 }
     elseif ($failedRequired -gt 0 -or $failedControls -gt 0) { $status = 'Failed'; $exitCode = 1 }
@@ -62,6 +63,7 @@ function Invoke-ZTProvisioning {
         [string]$OutputPath = (Join-Path -Path ([string]$env:ProgramData) -ChildPath 'ZeroTouch'),
         [AllowEmptyString()][string]$Language = '',
         [AllowEmptyString()][string]$Notes = '',
+        [switch]$SkipDrivers,
         [switch]$SkipApplications,
         [switch]$SkipPrinters,
         [switch]$SkipSecurity,
@@ -104,7 +106,23 @@ function Invoke-ZTProvisioning {
         if (Test-ZTIsSystem) { $Technician = 'ZeroTouch (SYSTEM)' } else { $Technician = [string]$env:USERNAME }
     }
 
-    # 2. Applications
+    # 2. Drivers first: without its network driver a PC cannot download any application.
+    $driverResults = @()
+    if ($SkipDrivers) {
+        Write-ZTLog 'Drivers: skipped (-SkipDrivers).' -Level Warning
+    }
+    elseif ($null -ne $profileData['drivers']) {
+        Write-ZTLog 'Drivers' -Level Step
+        $identity = Get-ZTDeviceModel
+        $driverResults = @(Invoke-ZTDrivers -Settings $profileData['drivers'] -Manufacturer $identity.Manufacturer -Model $identity.Model)
+        foreach ($result in $driverResults) {
+            $level = 'Success'
+            if ($result.Status -eq 'Failed') { $level = 'Warning' } elseif ($result.Status -ne 'Installed') { $level = 'Info' }
+            Write-ZTLog ('Drivers {0} ({1}): {2} - {3}' -f $result.Name, $result.Kind, $result.Status, $result.Detail) -Level $level
+        }
+    }
+
+    # 3. Applications
     $appResults = New-Object -TypeName System.Collections.Generic.List[object]
     $apps = @($profileData['applications'])
     if ($SkipApplications) {
@@ -141,7 +159,7 @@ function Invoke-ZTProvisioning {
         }
     }
 
-    # 3. Network printers
+    # 4. Network printers
     $printerResults = New-Object -TypeName System.Collections.Generic.List[object]
     $printers = @($profileData['printers'] | Where-Object { $null -ne $_ })
     if ($SkipPrinters) {
@@ -163,7 +181,7 @@ function Invoke-ZTProvisioning {
         }
     }
 
-    # 4. Security baseline
+    # 5. Security baseline
     $securityResults = @()
     if ($SkipSecurity) {
         Write-ZTLog 'Security baseline: skipped (-SkipSecurity).' -Level Warning
@@ -178,10 +196,10 @@ function Invoke-ZTProvisioning {
         }
     }
 
-    # 5. Inventory and outcome
+    # 6. Inventory and outcome
     Write-ZTLog 'Inventory' -Level Step
     $device = Get-ZTDeviceInfo
-    $outcome = Get-ZTOutcome -Applications $appResults.ToArray() -Security $securityResults -Printers $printerResults.ToArray() -Simulation:$simulation
+    $outcome = Get-ZTOutcome -Applications $appResults.ToArray() -Security $securityResults -Printers $printerResults.ToArray() -Drivers $driverResults -Simulation:$simulation
     $run = [pscustomobject]@{
         SchemaVersion = 1
         Tool          = 'ZeroTouch'
@@ -196,13 +214,14 @@ function Invoke-ZTProvisioning {
         Technician    = $Technician
         Notes         = $Notes
         Device        = $device
+        Drivers       = $driverResults
         Applications  = $appResults.ToArray()
         Printers      = $printerResults.ToArray()
         Security      = $securityResults
         Outcome       = $outcome
     }
 
-    # 6. Handover form and detection marker
+    # 7. Handover form and detection marker
     $report = New-ZTHandoverReport -Run $run -OutputDirectory (Join-Path -Path $outputFolder -ChildPath 'Reports') -Pdf:$Pdf
     Write-ZTLog ('Handover form: {0}' -f $report.HtmlPath) -Level Step
     if ($report.PdfPath) { Write-ZTLog ('PDF: {0}' -f $report.PdfPath) }

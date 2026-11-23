@@ -116,6 +116,8 @@ Test-Case 'Every message key used by the source and the template exists' {
         'join.'       = @('Hybrid', 'Entra', 'Domain', 'Workgroup')
         'secureBoot.' = @('On', 'Off', 'Unsupported', 'Unknown')
         'app.failed.' = $script:ZTExplainedCodes
+        'driverKind.' = @('Model', 'Peripheral')
+        'driverStatus.' = @('Installed', 'Failed', 'WhatIf', 'Skipped')
     }
     foreach ($prefix in $families.Keys) { foreach ($suffix in $families[$prefix]) { $used.Add($prefix + $suffix) } }
     Assert-True ($used.Count -gt 100) ('the scan found only {0} keys' -f $used.Count)

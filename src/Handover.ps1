@@ -15,6 +15,7 @@ function Get-ZTStatusClass {
         'Failed'           { 'fail' }
         'WhatIf'           { 'sim' }
         'Simulation'       { 'sim' }
+        'Skipped'          { 'muted' }
         default            { 'warn' }
     }
 }
@@ -49,6 +50,7 @@ function ConvertTo-ZTHandoverHtml {
     $applications = @($Run.Applications | Where-Object { $null -ne $_ })
     $security = @($Run.Security | Where-Object { $null -ne $_ })
     $printers = @($Run.Printers | Where-Object { $null -ne $_ })
+    $drivers = @($Run.Drivers | Where-Object { $null -ne $_ })
     $simulation = [bool]$Run.Simulation
     $outcome = $Run.Outcome
 
@@ -61,6 +63,14 @@ function ConvertTo-ZTHandoverHtml {
         $pending = @($applications | Where-Object { $_.Status -eq 'WhatIf' }).Count
         if ($simulation) { $parts.Add((& $t 'summary.appsSimulation' @($applications.Count, $pending, $present))) }
         else { $parts.Add((& $t 'summary.apps' @($applications.Count, $installed, $present, $failed))) }
+    }
+    if ($drivers.Count -gt 0) {
+        $added = @($drivers | Where-Object { $_.Status -eq 'Installed' }).Count
+        $failed = @($drivers | Where-Object { $_.Status -eq 'Failed' }).Count
+        $skipped = @($drivers | Where-Object { $_.Status -eq 'Skipped' }).Count
+        $pending = @($drivers | Where-Object { $_.Status -eq 'WhatIf' }).Count
+        if ($simulation) { $parts.Add((& $t 'summary.driversSimulation' @($drivers.Count, $pending, $skipped))) }
+        else { $parts.Add((& $t 'summary.drivers' @($drivers.Count, $added, $failed, $skipped))) }
     }
     if ($printers.Count -gt 0) {
         $added = @($printers | Where-Object { $_.Status -eq 'Installed' }).Count
@@ -93,6 +103,15 @@ function ConvertTo-ZTHandoverHtml {
     }
     if ($appRows.Count -eq 0) { $appRows.Add(('    <tr><td colspan="5" class="detail">{0}</td></tr>' -f (ConvertTo-ZTHtml (& $t 'section.notRun')))) }
 
+    $driverRows = New-Object -TypeName System.Collections.Generic.List[string]
+    foreach ($driver in $drivers) {
+        $badge = '<span class="pill {0}">{1}</span>' -f (Get-ZTStatusClass $driver.Status), (ConvertTo-ZTHtml (& $t ('driverStatus.' + $driver.Status)))
+        $driverRows.Add(('    <tr><td>{0}</td><td>{1}</td><td>{2}</td><td class="detail">{3}</td></tr>' -f
+                (ConvertTo-ZTHtml $driver.Name), (ConvertTo-ZTHtml (& $t ('driverKind.' + $driver.Kind))), $badge,
+                (ConvertTo-ZTHtml (Get-ZTResultText -Result $driver -Language $Language))))
+    }
+    if ($driverRows.Count -eq 0) { $driverRows.Add(('    <tr><td colspan="4" class="detail">{0}</td></tr>' -f (ConvertTo-ZTHtml (& $t 'drivers.none')))) }
+
     $printerRows = New-Object -TypeName System.Collections.Generic.List[string]
     foreach ($printer in $printers) {
         $badge = '<span class="pill {0}">{1}</span>' -f (Get-ZTStatusClass $printer.Status), (ConvertTo-ZTHtml (& $t ('status.' + $printer.Status)))
@@ -111,10 +130,13 @@ function ConvertTo-ZTHandoverHtml {
     }
     if ($securityRows.Count -eq 0) { $securityRows.Add(('    <tr><td colspan="3" class="detail">{0}</td></tr>' -f (ConvertTo-ZTHtml (& $t 'section.notRun')))) }
 
-    # ---- notes: failed applications and printers, controls that need attention, technician notes
+    # ---- notes: failed applications, drivers and printers, controls that need attention, technician notes
     $notes = New-Object -TypeName System.Collections.Generic.List[string]
     foreach ($app in @($applications | Where-Object { $_.Status -eq 'Failed' })) {
         $notes.Add((& $t 'note.item' @([string]$app.Name, (Get-ZTResultText -Result $app -Language $Language))))
+    }
+    foreach ($driver in @($drivers | Where-Object { $_.Status -eq 'Failed' })) {
+        $notes.Add((& $t 'note.item' @([string]$driver.Name, (Get-ZTResultText -Result $driver -Language $Language))))
     }
     foreach ($printer in @($printers | Where-Object { $_.Status -eq 'Failed' })) {
         $notes.Add((& $t 'note.item' @([string]$printer.Name, (Get-ZTResultText -Result $printer -Language $Language))))
@@ -191,6 +213,7 @@ function ConvertTo-ZTHandoverHtml {
         SUMMARY                = $summary
         SECURITY_ROWS          = $securityRows -join "`n"
         APPLICATION_ROWS       = $appRows -join "`n"
+        DRIVER_ROWS            = $driverRows -join "`n"
         PRINTER_ROWS           = $printerRows -join "`n"
         NOTES                  = $notesHtml
     }

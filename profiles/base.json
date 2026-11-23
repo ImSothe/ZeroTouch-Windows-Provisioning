@@ -9,6 +9,9 @@
     "itContact": "Soporte TI (ext. 200)",
     "language": "es"
   },
+  "drivers": {
+    "packs": "\\\\srv-files\\drivers\\Models"
+  },
   "applications": [
     { "id": "7zip.7zip", "name": "7-Zip" },
     { "id": "Google.Chrome", "name": "Google Chrome", "scope": "machine" },

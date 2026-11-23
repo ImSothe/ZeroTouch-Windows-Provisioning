@@ -5,6 +5,11 @@
   "description": "Puesto de planta: planos, programas CNC y transferencia de ficheros a las máquinas.",
   "extends": "base",
   "removeApplications": [ "Adobe.Acrobat.Reader.64-bit" ],
+  "drivers": {
+    "peripherals": [
+      { "name": "Zebra ZD421 (etiquetas)", "path": "\\\\srv-files\\drivers\\Perifericos\\zebra-zd421" }
+    ]
+  },
   "applications": [
     { "id": "SumatraPDF.SumatraPDF", "name": "SumatraPDF" },
     { "id": "Notepad++.Notepad++", "name": "Notepad++" },
